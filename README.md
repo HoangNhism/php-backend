@@ -9,3 +9,6 @@ remember to create a .env and .htacess file to run project
 
 # tạo route để định nghĩa endpoint và gọi lại controller
 
+# acc admin:
+admin@gmail.com
+123
