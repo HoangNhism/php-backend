@@ -1,0 +1,52 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Composer packages
+/vendor/
+composer.lock
+
+# PHPUnit
+/phpunit.xml
+.phpunit.result.cache
+
+# Node modules (if you use any frontend tools)
+/node_modules/
+/npm-debug.log
+/yarn-error.log
+/yarn-debug.log
+
+# IDE and editor files
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+.DS_Store
+
+# Cache and logs
+/var/cache/*
+/var/logs/*
+/logs/*
+*.log
+
+# Static files generated during runtime
+/public/uploads/
+/public/build/
+
+# Database backups
+*.sql
+*.sqlite
+*.sqlite3
+*.db
+
+# Operating system files
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.bak
+*.cache
