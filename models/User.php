@@ -1,161 +1,123 @@
 <?php
-namespace App\Models;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Support\Str;
-
-class User extends Model
+class UserModel
 {
-    use HasFactory;
+    private $conn;
+    private $table_name = "users";
 
-    /**
-     * The table associated with the model.
-     *
-     * @var string
-     */
-    protected $table = 'users';
-
-    /**
-     * Indicates if the model should be timestamped.
-     *
-     * @var bool
-     */
-    public $timestamps = false;
-
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
-    protected $fillable = [
-        'email',
-        'password',
-        'full_name',
-        'mobile',
-        'address',
-        'avatarURL',
-        'department',
-        'position',
-        'hire_date',
-        'status',
-        'role',
-        'isDelete'
-    ];
-
-    /**
-     * The attributes that should be hidden for arrays.
-     *
-     * @var array
-     */
-    protected $hidden = [
-        'password',
-    ];
-
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array
-     */
-    protected $casts = [
-        'hire_date' => 'date',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-        'isDelete' => 'boolean',
-    ];
-
-    /**
-     * The model's default values for attributes.
-     *
-     * @var array
-     */
-    protected $attributes = [
-        'status' => 'Active',
-        'isDelete' => false,
-    ];
-
-    /**
-     * Boot the model.
-     */
-    protected static function boot()
+    public function __construct($db)
     {
-        parent::boot();
-
-        // Generate random ID before creating a new user
-        static::creating(function ($user) {
-            if (empty($user->id)) {
-                $user->id = Str::random(16);
-            }
-            
-            if (empty($user->created_at)) {
-                $user->created_at = now();
-            }
-            
-            if (empty($user->updated_at)) {
-                $user->updated_at = now();
-            }
-        });
-
-        static::updating(function ($user) {
-            $user->updated_at = now();
-        });
+        $this->conn = $db;
     }
-    
+
     /**
-     * Get the attendance records for the user.
+     * Retrieve all users.
      */
-    public function attendances()
+    public function getUsers()
     {
-        return $this->hasMany(Attendance::class, 'user_id', 'id');
+        $query = "SELECT * FROM " . $this->table_name . " WHERE isDelete = 0";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
-    
+
     /**
-     * Get the projects managed by the user.
+     * Retrieve a user by ID.
      */
-    public function managedProjects()
+    public function getUserById($id)
     {
-        return $this->hasMany(Project::class, 'manager_id', 'id');
+        $query = "SELECT * FROM " . $this->table_name . " WHERE id = :id AND isDelete = 0";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $id);
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_OBJ);
     }
-    
+
     /**
-     * Get the projects where user is a member.
+     * Retrieve a user by email.
      */
-    public function projects()
+    public function getUserByEmail($email)
     {
-        return $this->belongsToMany(Project::class, 'project_members', 'user_id', 'project_id')
-            ->withPivot('role')
-            ->withTimestamp('join_at')
-            ->wherePivot('isDelete', false);
+        $query = "SELECT * FROM " . $this->table_name . " WHERE email = :email AND isDelete = 0";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':email', $email);
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_OBJ);
     }
-    
+
     /**
-     * Get the user's tasks.
+     * Add a new user.
      */
-    public function tasks()
+    public function addUser($data)
     {
-        return $this->hasMany(Task::class, 'user_id', 'id');
+        $query = "INSERT INTO " . $this->table_name . " (id, email, password, full_name, mobile, address, avatarURL, department, position, hire_date, status, role, isDelete) 
+                  VALUES (:id, :email, :password, :full_name, :mobile, :address, :avatarURL, :department, :position, :hire_date, :status, :role, 0)";
+        $stmt = $this->conn->prepare($query);
+
+        // Generate random string for id
+        $data['id'] = bin2hex(random_bytes(8));
+
+        // Hash the password
+        $data['password'] = password_hash($data['password'], PASSWORD_BCRYPT);
+
+        foreach ($data as $key => $value) {
+            $data[$key] = htmlspecialchars(strip_tags($value));
+        }
+
+        $stmt->bindParam(':id', $data['id']);
+        $stmt->bindParam(':email', $data['email']);
+        $stmt->bindParam(':password', $data['password']);
+        $stmt->bindParam(':full_name', $data['full_name']);
+        $stmt->bindParam(':mobile', $data['mobile']);
+        $stmt->bindParam(':address', $data['address']);
+        $stmt->bindParam(':avatarURL', $data['avatarURL']);
+        $stmt->bindParam(':department', $data['department']);
+        $stmt->bindParam(':position', $data['position']);
+        $stmt->bindParam(':hire_date', $data['hire_date']);
+        $stmt->bindParam(':status', $data['status']);
+        $stmt->bindParam(':role', $data['role']);
+
+        return $stmt->execute();
     }
-    
+
     /**
-     * Scope a query to only include active users.
+     * Update an existing user.
      */
-    public function scopeActive($query)
+    public function updateUser($id, $data)
     {
-        return $query->where('status', 'Active')->where('isDelete', false);
+        $query = "UPDATE " . $this->table_name . " 
+                  SET email = :email, password = :password, full_name = :full_name, mobile = :mobile, address = :address, avatarURL = :avatarURL, 
+                      department = :department, position = :position, hire_date = :hire_date, status = :status, role = :role 
+                  WHERE id = :id AND isDelete = 0";
+        $stmt = $this->conn->prepare($query);
+
+        foreach ($data as $key => $value) {
+            $data[$key] = htmlspecialchars(strip_tags($value));
+        }
+
+        $stmt->bindParam(':id', $id);
+        $stmt->bindParam(':email', $data['email']);
+        $stmt->bindParam(':password', $data['password']);
+        $stmt->bindParam(':full_name', $data['full_name']);
+        $stmt->bindParam(':mobile', $data['mobile']);
+        $stmt->bindParam(':address', $data['address']);
+        $stmt->bindParam(':avatarURL', $data['avatarURL']);
+        $stmt->bindParam(':department', $data['department']);
+        $stmt->bindParam(':position', $data['position']);
+        $stmt->bindParam(':hire_date', $data['hire_date']);
+        $stmt->bindParam(':status', $data['status']);
+        $stmt->bindParam(':role', $data['role']);
+
+        return $stmt->execute();
     }
-    
+
     /**
-     * Check if the user is an admin.
+     * Soft delete a user.
      */
-    public function isAdmin()
+    public function deleteUser($id)
     {
-        return $this->role === 'Admin';
-    }
-    
-    /**
-     * Check if the user is a manager.
-     */
-    public function isManager()
-    {
-        return $this->role === 'Manager';
+        $query = "UPDATE " . $this->table_name . " SET isDelete = 1 WHERE id = :id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $id);
+        return $stmt->execute();
     }
 }

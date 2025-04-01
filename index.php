@@ -1,4 +1,6 @@
 <?php
+
+require_once __DIR__ . '/vendor/autoload.php';
 // Load the router
 require_once './routes/Router.php';
 
