@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/userRoute.php';
 require_once __DIR__ . '/authRoute.php';
+require_once __DIR__ . '/leaveRoute.php';
 
 $router = $GLOBALS['router'];
 
