@@ -1,8 +1,4 @@
 <?php
-
-namespace App\Models;
-use \UserModel;
-
 class AttendanceModel
 {
     private $conn;
@@ -14,413 +10,368 @@ class AttendanceModel
     }
 
     /**
-     * Get detailed current attendance status for a specific user
-     * Returns: array with detailed status information
+     * Record user check-in (arrive)
+     *
+     * @param string $userId - User ID
+     * @param string $checkInTime - Check-in timestamp (optional, defaults to current time)
+     * @param array $gpsLocation - GPS location data
+     * @return object|false - Attendance record or false on failure
      */
-    public function getCurrentUserStatus($user_id)
-    {
-        if (!$user_id) {
-            throw new Exception('UserId is required');
-        }
-        
-        $today = date('Y-m-d');
-        $startDate = $today . ' 00:00:00';
-        $endDate = date('Y-m-d', strtotime('+1 day')) . ' 00:00:00';
-        
-        $query = "SELECT * FROM " . $this->table_name . " 
-                 WHERE user_id = :user_id 
-                 AND check_in_time BETWEEN :start_date AND :end_date 
-                 ORDER BY check_in_time DESC LIMIT 1";
-                 
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':user_id', $user_id);
-        $stmt->bindParam(':start_date', $startDate);
-        $stmt->bindParam(':end_date', $endDate);
-        $stmt->execute();
-        
-        $record = $stmt->fetch(PDO::FETCH_OBJ);
-        
-        if (!$record) {
-            return [
-                'is_checked_in' => false,
-                'is_checked_out' => false,
-                'status' => 'Not Checked In',
-                'message' => 'You haven\'t checked in today',
-                'attendance_data' => null,
-                'today_date' => $today
-            ];
-        } else if ($record->check_out_time) {
-            return [
-                'is_checked_in' => true,
-                'is_checked_out' => true,
-                'status' => $record->status,
-                'message' => 'You have completed your check-in/out for today',
-                'attendance_data' => [
-                    'check_in_time' => $record->check_in_time,
-                    'check_out_time' => $record->check_out_time,
-                    'status' => $record->status,
-                    'id' => $record->id
-                ],
-                'today_date' => $today
-            ];
-        } else {
-            return [
-                'is_checked_in' => true,
-                'is_checked_out' => false,
-                'status' => $record->status,
-                'message' => 'You\'re currently checked in',
-                'attendance_data' => [
-                    'check_in_time' => $record->check_in_time, 
-                    'status' => $record->status,
-                    'id' => $record->id
-                ],
-                'today_date' => $today
-            ];
-        }
-    }
-
-    /**
-     * Record user arrival (check-in)
-     * Returns: array with status and message or attendance ID
-     */
-    public function arrive($user_id, $check_in_time = null, $gps_location = null)
+    public function arrive($userId, $checkInTime = null, $gpsLocation = null)
     {
         try {
             // Validate user ID
-            if (!$user_id) {
+            if (empty($userId)) {
                 throw new Exception('UserId is required');
             }
 
             // Validate GPS location
-            if (!$gps_location || !is_array($gps_location)) {
+            if (empty($gpsLocation) || !is_array($gpsLocation)) {
                 throw new Exception('Valid GPS location object is required');
+            }
+
+            // Set check-in time to current time if not provided
+            if (empty($checkInTime)) {
+                $checkInTime = date('Y-m-d H:i:s');
             }
 
             // Create a clean GPS object to ensure we only store what we need
             $locationData = [
-                'latitude' => (float)$gps_location['latitude'],
-                'longitude' => (float)$gps_location['longitude']
+                'latitude' => (float) $gpsLocation['latitude'],
+                'longitude' => (float) $gpsLocation['longitude']
             ];
 
             // Add optional accuracy if provided
-            if (isset($gps_location['accuracy'])) {
-                $locationData['accuracy'] = (float)$gps_location['accuracy'];
+            if (isset($gpsLocation['accuracy'])) {
+                $locationData['accuracy'] = (float) $gpsLocation['accuracy'];
             }
 
-            // Use current time if check_in_time not provided
-            if (!$check_in_time) {
-                $check_in_time = date('Y-m-d H:i:s');
-            }
+            // Define cutoff time (8:00 AM)
+            $cutoffDate = new DateTime($checkInTime);
+            $cutoffDate->setTime(8, 0, 0);
+            $cutoffTime = $cutoffDate->format('Y-m-d H:i:s');
 
-            // Parse the check-in time
-            $checkInDateTime = new DateTime($check_in_time);
-            
-            // Define cutoff time (8:00 AM on the same day)
-            $cutoffTime = new DateTime($checkInDateTime->format('Y-m-d') . ' 08:00:00');
-            
             // Determine check-in status
-            $status = $checkInDateTime > $cutoffTime ? 'Late' : 'On time';
+            $checkInDateTime = new DateTime($checkInTime);
+            $status = $checkInDateTime > $cutoffDate ? 'Late' : 'On time';
 
-            // Check if user has already checked in today
-            // Get today's date based on check-in time
-            $today = $checkInDateTime->format('Y-m-d');
-            $startDate = $today . ' 00:00:00';
-            $endDate = date('Y-m-d', strtotime($today . ' +1 day')) . ' 00:00:00';
+            // Check if user already has a check-in for today
+            $todayStart = date('Y-m-d 00:00:00', strtotime($checkInTime));
+            $todayEnd = date('Y-m-d 23:59:59', strtotime($checkInTime));
             
             $query = "SELECT * FROM " . $this->table_name . " 
-                     WHERE user_id = :user_id 
-                     AND check_in_time BETWEEN :start_date AND :end_date 
-                     LIMIT 1";
-                     
+                      WHERE user_id = :user_id 
+                      AND check_in_time BETWEEN :today_start AND :today_end";
+            
             $stmt = $this->conn->prepare($query);
-            $stmt->bindParam(':user_id', $user_id);
-            $stmt->bindParam(':start_date', $startDate);
-            $stmt->bindParam(':end_date', $endDate);
+            $stmt->bindParam(':user_id', $userId);
+            $stmt->bindParam(':today_start', $todayStart);
+            $stmt->bindParam(':today_end', $todayEnd);
             $stmt->execute();
             
-            $existingAttendance = $stmt->fetch(PDO::FETCH_OBJ);
+            if ($stmt->rowCount() > 0) {
+                // Uncomment to prevent multiple check-ins per day
+                // throw new Exception('You have already checked in today');
+            }
+
+            // Generate random ID
+            $id = bin2hex(random_bytes(8)); // 16 hex characters
             
-            // Uncomment if you want to prevent multiple check-ins
-            // if ($existingAttendance) {
-            //     throw new Exception('You have already checked in today');
-            // }
-            
-            // Generate a random ID
-            $id = bin2hex(random_bytes(8));
-            
-            // Convert location data to JSON
-            $gps_location_json = json_encode($locationData);
-            
-            // Insert the attendance record
+            // Store GPS location as JSON
+            $locationJson = json_encode($locationData);
+
+            // Insert attendance record
             $query = "INSERT INTO " . $this->table_name . " 
-                     (id, user_id, status, check_in_time, gps_location) 
-                     VALUES (:id, :user_id, :status, :check_in_time, :gps_location)";
+                      (id, user_id, status, check_in_time, gps_location) 
+                      VALUES (:id, :user_id, :status, :check_in_time, :gps_location)";
             
             $stmt = $this->conn->prepare($query);
             $stmt->bindParam(':id', $id);
-            $stmt->bindParam(':user_id', $user_id);
+            $stmt->bindParam(':user_id', $userId);
             $stmt->bindParam(':status', $status);
-            $stmt->bindParam(':check_in_time', $check_in_time);
-            $stmt->bindParam(':gps_location', $gps_location_json);
+            $stmt->bindParam(':check_in_time', $checkInTime);
+            $stmt->bindParam(':gps_location', $locationJson);
             
             if ($stmt->execute()) {
-                // Get the created attendance record
+                // Fetch the created record
                 $query = "SELECT * FROM " . $this->table_name . " WHERE id = :id";
                 $stmt = $this->conn->prepare($query);
                 $stmt->bindParam(':id', $id);
                 $stmt->execute();
-                $attendance = $stmt->fetch(PDO::FETCH_OBJ);
                 
-                // Log success message
-                error_log('✅ Check-in recorded: ' . json_encode($attendance));
-                
-                return [
-                    'status' => 'success',
-                    'message' => 'Checked in successfully',
-                    'attendance' => $attendance
-                ];
-            } else {
-                throw new Exception('Failed to create attendance record');
+                return $stmt->fetch(PDO::FETCH_OBJ);
             }
-        } catch (Exception $e) {
-            // Log error message
-            error_log('❌ Error in attendanceModel.arrive: ' . $e->getMessage());
             
-            return [
-                'status' => 'error',
-                'message' => $e->getMessage()
-            ];
+            return false;
+        } catch (Exception $error) {
+            error_log('❌ Error in AttendanceModel::arrive: ' . $error->getMessage());
+            throw $error;
         }
     }
 
     /**
-     * Record user departure (check-out)
-     * Returns: array with status and message
+     * Record user check-out (leave)
+     *
+     * @param string $userId - User ID
+     * @param string $checkOutTime - Check-out timestamp (optional, defaults to current time)
+     * @param array $gpsLocation - GPS location data
+     * @return object|false - Updated attendance record or false on failure
      */
-    public function leave($user_id, $check_out_time = null, $gps_location = null)
+    public function leave($userId, $checkOutTime = null, $gpsLocation = null)
     {
         try {
             // Validate user ID
-            if (!$user_id) {
+            if (empty($userId)) {
                 throw new Exception('UserId is required');
             }
 
-            // Use current time if check_out_time not provided
-            if (!$check_out_time) {
-                $check_out_time = date('Y-m-d H:i:s');
+            // Set check-out time to current time if not provided
+            if (empty($checkOutTime)) {
+                $checkOutTime = date('Y-m-d H:i:s');
             }
 
             // Find the most recent attendance record for the user without checkout time
             $query = "SELECT * FROM " . $this->table_name . " 
-                     WHERE user_id = :user_id 
-                     AND check_out_time IS NULL
-                     ORDER BY check_in_time DESC LIMIT 1";
-                     
+                      WHERE user_id = :user_id 
+                      AND check_out_time IS NULL 
+                      ORDER BY check_in_time DESC 
+                      LIMIT 1";
+            
             $stmt = $this->conn->prepare($query);
-            $stmt->bindParam(':user_id', $user_id);
+            $stmt->bindParam(':user_id', $userId);
             $stmt->execute();
             
-            $attendance = $stmt->fetch(PDO::FETCH_OBJ);
-            
-            if (!$attendance) {
+            if ($stmt->rowCount() == 0) {
                 throw new Exception('No active check-in found. Please check in first.');
             }
             
-            // Format GPS location if provided
-            $locationData = null;
-            if ($attendance->gps_location) {
-                $locationData = json_decode($attendance->gps_location, true);
-            }
+            $attendance = $stmt->fetch(PDO::FETCH_OBJ);
             
-            if ($gps_location && is_array($gps_location)) {
-                if (!$locationData) {
-                    $locationData = [];
-                }
+            // Format GPS location if provided
+            if (!empty($gpsLocation) && is_array($gpsLocation)) {
+                // Get existing location data
+                $locationData = json_decode($attendance->gps_location, true) ?? [];
                 
                 // Add checkout location data
-                $locationData['checkout_latitude'] = (float)$gps_location['latitude'];
-                $locationData['checkout_longitude'] = (float)$gps_location['longitude'];
+                $locationData['checkout_latitude'] = (float) $gpsLocation['latitude'];
+                $locationData['checkout_longitude'] = (float) $gpsLocation['longitude'];
                 
-                if (isset($gps_location['accuracy'])) {
-                    $locationData['checkout_accuracy'] = (float)$gps_location['accuracy'];
+                if (isset($gpsLocation['accuracy'])) {
+                    $locationData['checkout_accuracy'] = (float) $gpsLocation['accuracy'];
                 }
+                
+                // Update with new combined location data
+                $locationJson = json_encode($locationData);
+            } else {
+                // Keep existing location data
+                $locationJson = $attendance->gps_location;
             }
             
-            // Convert location data back to JSON
-            $locationJson = $locationData ? json_encode($locationData) : null;
+            // Update checkout time and location
+            $query = "UPDATE " . $this->table_name . " 
+                      SET check_out_time = :check_out_time, 
+                          gps_location = :gps_location 
+                      WHERE id = :id";
             
-            // Update the record with check-out time and location
-            $update_query = "UPDATE " . $this->table_name . " 
-                            SET check_out_time = :check_out_time";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':check_out_time', $checkOutTime);
+            $stmt->bindParam(':gps_location', $locationJson);
+            $stmt->bindParam(':id', $attendance->id);
             
-            if ($locationJson) {
-                $update_query .= ", gps_location = :gps_location";
-            }
-            
-            $update_query .= " WHERE id = :id";
-            
-            $update_stmt = $this->conn->prepare($update_query);
-            $update_stmt->bindParam(':check_out_time', $check_out_time);
-            $update_stmt->bindParam(':id', $attendance->id);
-            
-            if ($locationJson) {
-                $update_stmt->bindParam(':gps_location', $locationJson);
-            }
-            
-            if ($update_stmt->execute()) {
-                // Get the updated attendance record
+            if ($stmt->execute()) {
+                // Fetch the updated record
                 $query = "SELECT * FROM " . $this->table_name . " WHERE id = :id";
                 $stmt = $this->conn->prepare($query);
                 $stmt->bindParam(':id', $attendance->id);
                 $stmt->execute();
-                $updatedAttendance = $stmt->fetch(PDO::FETCH_OBJ);
                 
-                // Calculate duration
-                $check_in = strtotime($updatedAttendance->check_in_time);
-                $check_out = strtotime($updatedAttendance->check_out_time);
-                $duration_seconds = $check_out - $check_in;
-                
-                // Format duration
-                $hours = floor($duration_seconds / 3600);
-                $minutes = floor(($duration_seconds % 3600) / 60);
-                $formatted_duration = "{$hours}h {$minutes}m";
-                
-                // Add duration to the attendance object
-                $updatedAttendance->duration = $formatted_duration;
-                $updatedAttendance->duration_seconds = $duration_seconds;
-                
-                // Convert GPS JSON back to object
-                if ($updatedAttendance->gps_location) {
-                    $updatedAttendance->gps_location = json_decode($updatedAttendance->gps_location);
-                }
-                
-                // Log success message
-                error_log('✅ Check-out recorded: ' . json_encode($updatedAttendance));
-                
-                return [
-                    'status' => 'success',
-                    'message' => 'Checked out successfully',
-                    'attendance' => $updatedAttendance
-                ];
-            } else {
-                throw new Exception('Failed to update attendance record');
+                return $stmt->fetch(PDO::FETCH_OBJ);
             }
-        } catch (Exception $e) {
-            // Log error message
-            error_log('❌ Error in attendanceModel.leave: ' . $e->getMessage());
             
-            return [
-                'status' => 'error',
-                'message' => $e->getMessage()
-            ];
+            return false;
+        } catch (Exception $error) {
+            error_log('❌ Error in AttendanceModel::leave: ' . $error->getMessage());
+            throw $error;
         }
     }
 
     /**
-     * Get attendance history for a specific user
-     * Optional date range and status filters
-     * Returns: array of formatted attendance records
+     * Get current user's attendance status for today
+     *
+     * @param string $userId - User ID
+     * @return array - User's attendance status
      */
-    public function getUserAttendanceHistory($user_id, $start_date = null, $end_date = null, $status = null)
+    public function getCurrentUserStatus($userId)
     {
         try {
-            if (!$user_id) {
+            if (empty($userId)) {
+                throw new Exception('UserId is required');
+            }
+
+            // Get today's date range
+            $today = date('Y-m-d 00:00:00');
+            $tomorrow = date('Y-m-d 00:00:00', strtotime('+1 day'));
+            
+            // Find today's attendance record for the user
+            $query = "SELECT a.*, u.full_name, u.department, u.position 
+                      FROM " . $this->table_name . " a
+                      JOIN users u ON a.user_id = u.id
+                      WHERE a.user_id = :user_id 
+                      AND a.check_in_time BETWEEN :today AND :tomorrow
+                      ORDER BY a.check_in_time DESC 
+                      LIMIT 1";
+            
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':user_id', $userId);
+            $stmt->bindParam(':today', $today);
+            $stmt->bindParam(':tomorrow', $tomorrow);
+            $stmt->execute();
+            
+            // Return different responses based on attendance status
+            if ($stmt->rowCount() == 0) {
+                return [
+                    'is_checked_in' => false,
+                    'is_checked_out' => false,
+                    'status' => 'Not Checked In',
+                    'message' => 'You haven\'t checked in today',
+                    'attendance_data' => null,
+                    'today_date' => date('Y-m-d')
+                ];
+            }
+            
+            $attendance = $stmt->fetch(PDO::FETCH_OBJ);
+            
+            if ($attendance->check_out_time) {
+                return [
+                    'is_checked_in' => true,
+                    'is_checked_out' => true,
+                    'status' => $attendance->status,
+                    'message' => 'You have completed your check-in/out for today',
+                    'attendance_data' => [
+                        'check_in_time' => $attendance->check_in_time,
+                        'check_out_time' => $attendance->check_out_time,
+                        'status' => $attendance->status,
+                        'id' => $attendance->id
+                    ],
+                    'today_date' => date('Y-m-d')
+                ];
+            }
+            
+            return [
+                'is_checked_in' => true,
+                'is_checked_out' => false,
+                'status' => $attendance->status,
+                'message' => 'You\'re currently checked in',
+                'attendance_data' => [
+                    'check_in_time' => $attendance->check_in_time,
+                    'status' => $attendance->status,
+                    'id' => $attendance->id
+                ],
+                'today_date' => date('Y-m-d')
+            ];
+        } catch (Exception $error) {
+            error_log('❌ Error in AttendanceModel::getCurrentUserStatus: ' . $error->getMessage());
+            throw $error;
+        }
+    }
+
+    /**
+     * Get user's attendance history
+     *
+     * @param string $userId - User ID
+     * @param string|null $startDate - Optional start date filter (YYYY-MM-DD)
+     * @param string|null $endDate - Optional end date filter (YYYY-MM-DD)
+     * @param string|null $status - Optional status filter
+     * @return array - Array of attendance records
+     */
+    public function getUserAttendanceHistory($userId, $startDate = null, $endDate = null, $status = null)
+    {
+        try {
+            if (empty($userId)) {
                 throw new Exception('UserId is required');
             }
             
-            // Base query with user join
+            // Start building the query
             $query = "SELECT a.*, u.full_name, u.department, u.position 
-                     FROM " . $this->table_name . " a
-                     LEFT JOIN users u ON a.user_id = u.id
-                     WHERE a.user_id = :user_id";
+                      FROM " . $this->table_name . " a
+                      JOIN users u ON a.user_id = u.id
+                      WHERE a.user_id = :user_id";
+            
+            $params = [':user_id' => $userId];
             
             // Add date range filter if provided
-            if ($start_date) {
-                $start = $start_date . ' 00:00:00';
+            if ($startDate) {
                 $query .= " AND a.check_in_time >= :start_date";
+                $params[':start_date'] = date('Y-m-d 00:00:00', strtotime($startDate));
             }
             
-            if ($end_date) {
-                $end = $end_date . ' 23:59:59';
+            if ($endDate) {
                 $query .= " AND a.check_in_time <= :end_date";
+                $params[':end_date'] = date('Y-m-d 23:59:59', strtotime($endDate));
             }
             
             // Add status filter if provided
             if ($status) {
                 $query .= " AND a.status = :status";
+                $params[':status'] = $status;
             }
             
+            // Order by check-in time (most recent first)
             $query .= " ORDER BY a.check_in_time DESC";
             
             $stmt = $this->conn->prepare($query);
-            $stmt->bindParam(':user_id', $user_id);
             
-            if ($start_date) {
-                $stmt->bindParam(':start_date', $start);
-            }
-            
-            if ($end_date) {
-                $stmt->bindParam(':end_date', $end);
-            }
-            
-            if ($status) {
-                $stmt->bindParam(':status', $status);
+            // Bind all parameters
+            foreach ($params as $key => $value) {
+                $stmt->bindParam($key, $params[$key]);
             }
             
             $stmt->execute();
-            $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Fetch all records
+            $records = $stmt->fetchAll(PDO::FETCH_OBJ);
             
             // Format the records for better readability
             $formattedRecords = [];
+            
             foreach ($records as $record) {
-                // Calculate duration if both check-in and check-out times exist
+                // Calculate duration if both check-in and check-out exist
                 $duration = null;
-                if (!empty($record['check_in_time']) && !empty($record['check_out_time'])) {
-                    $check_in = strtotime($record['check_in_time']);
-                    $check_out = strtotime($record['check_out_time']);
-                    $duration_ms = ($check_out - $check_in) * 1000; // Convert to milliseconds for consistency
+                if ($record->check_in_time && $record->check_out_time) {
+                    $checkIn = new DateTime($record->check_in_time);
+                    $checkOut = new DateTime($record->check_out_time);
+                    $durationInterval = $checkOut->diff($checkIn);
                     
-                    // Format as hours and minutes
-                    $hours = floor($duration_ms / (1000 * 60 * 60));
-                    $minutes = floor(($duration_ms % (1000 * 60 * 60)) / (1000 * 60));
+                    $hours = $durationInterval->h + ($durationInterval->days * 24);
+                    $minutes = $durationInterval->i;
+                    
                     $duration = "{$hours}h {$minutes}m";
                 }
                 
-                // Get day of week in English
-                $check_in_date = new DateTime($record['check_in_time']);
-                $day_of_week = $check_in_date->format('l'); // 'l' returns full day name
+                // Get the day of week
+                $date = new DateTime($record->check_in_time);
+                $dayOfWeek = $date->format('l'); // Monday, Tuesday, etc.
                 
                 // Format the record
-                $formattedRecord = [
-                    'id' => $record['id'],
-                    'date' => date('Y-m-d', strtotime($record['check_in_time'])),
-                    'day_of_week' => $day_of_week,
-                    'check_in_time' => $record['check_in_time'],
-                    'check_out_time' => $record['check_out_time'] ?: null,
-                    'status' => $record['status'],
+                $formattedRecords[] = [
+                    'id' => $record->id,
+                    'date' => date('Y-m-d', strtotime($record->check_in_time)),
+                    'day_of_week' => $dayOfWeek,
+                    'check_in_time' => $record->check_in_time,
+                    'check_out_time' => $record->check_out_time,
+                    'status' => $record->status,
                     'duration' => $duration,
-                    'user_name' => $record['full_name'] ?: 'Unknown',
-                    'department' => $record['department'] ?: 'Not assigned',
-                    'position' => $record['position'] ?: 'Not assigned'
+                    'user_name' => $record->full_name,
+                    'department' => $record->department ?: 'Not assigned',
+                    'position' => $record->position ?: 'Not assigned',
+                    'gps_location' => json_decode($record->gps_location, true)
                 ];
-                
-                // Add GPS location if it exists
-                if (!empty($record['gps_location'])) {
-                    $formattedRecord['gps_location'] = json_decode($record['gps_location']);
-                }
-                
-                $formattedRecords[] = $formattedRecord;
             }
             
             return $formattedRecords;
-        } catch (Exception $e) {
-            // Log error message
-            error_log('❌ Error in attendanceModel.getUserAttendanceHistory: ' . $e->getMessage());
-            
-            return [
-                'status' => 'error',
-                'message' => $e->getMessage()
-            ];
+        } catch (Exception $error) {
+            error_log('❌ Error in AttendanceModel::getUserAttendanceHistory: ' . $error->getMessage());
+            throw $error;
         }
     }
 }
