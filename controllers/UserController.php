@@ -52,4 +52,28 @@ class UserController
     {
         return $this->userModel->deleteUser($id);
     }
+
+    /**
+     * Get users by a specific field.
+     */
+    public function getUsersByField($field, $value)
+    {
+        return $this->userModel->getUsersByField($field, $value);
+    }
+
+    /**
+     * Block a user.
+     */
+    public function blockUser($id)
+    {
+        return $this->userModel->blockUser($id);
+    }
+
+    /**
+     * Upload a file for a user.
+     */
+    public function uploadFile($userId, $fileData)
+    {
+        return $this->userModel->uploadFile($userId, $fileData);
+    }
 }

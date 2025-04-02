@@ -10,22 +10,22 @@ class UserModel
     }
 
     /**
-     * Retrieve all users.
+     * Retrieve all users with status 'Active'.
      */
     public function getUsers()
     {
-        $query = "SELECT * FROM " . $this->table_name . " WHERE isDelete = 0";
+        $query = "SELECT * FROM " . $this->table_name . " WHERE isDelete = 0 AND status = 'Active'";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
 
     /**
-     * Retrieve a user by ID.
+     * Retrieve a user by ID with status 'Active'.
      */
     public function getUserById($id)
     {
-        $query = "SELECT * FROM " . $this->table_name . " WHERE id = :id AND isDelete = 0";
+        $query = "SELECT * FROM " . $this->table_name . " WHERE id = :id AND isDelete = 0 AND status = 'Active'";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':id', $id);
         $stmt->execute();
@@ -33,11 +33,11 @@ class UserModel
     }
 
     /**
-     * Retrieve a user by email.
+     * Retrieve a user by email with status 'Active'.
      */
     public function getUserByEmail($email)
     {
-        $query = "SELECT * FROM " . $this->table_name . " WHERE email = :email AND isDelete = 0";
+        $query = "SELECT * FROM " . $this->table_name . " WHERE email = :email AND isDelete = 0 AND status = 'Active'";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':email', $email);
         $stmt->execute();
@@ -118,6 +118,44 @@ class UserModel
         $query = "UPDATE " . $this->table_name . " SET isDelete = 1 WHERE id = :id";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':id', $id);
+        return $stmt->execute();
+    }
+
+    /**
+     * Retrieve users by a specific field with status 'Active'.
+     */
+    public function getUsersByField($field, $value)
+    {
+        $query = "SELECT * FROM " . $this->table_name . " WHERE $field = :value AND isDelete = 0 AND status = 'Active'";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':value', $value);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
+    }
+
+    /**
+     * Block a user (set status to 'Inactive').
+     */
+    public function blockUser($id)
+    {
+        $query = "UPDATE " . $this->table_name . " SET status = 'Inactive' WHERE id = :id AND isDelete = 0";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $id);
+        return $stmt->execute();
+    }
+
+    /**
+     * Upload a file for a user.
+     */
+    public function uploadFile($userId, $fileData)
+    {
+        $query = "INSERT INTO employee_documents (employeeId, fileName, fileUrl, fileType) 
+                  VALUES (:employeeId, :fileName, :fileUrl, :fileType)";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':employeeId', $userId);
+        $stmt->bindParam(':fileName', $fileData['fileName']);
+        $stmt->bindParam(':fileUrl', $fileData['fileUrl']);
+        $stmt->bindParam(':fileType', $fileData['fileType']);
         return $stmt->execute();
     }
 }
