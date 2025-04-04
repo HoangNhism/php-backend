@@ -36,6 +36,15 @@ $router->post('/api/users', function () use ($userController, $authMiddleware, $
     ]);
 });
 
+// $router->post('/api/users', function () use ($userController) {
+//     $data = json_decode(file_get_contents('php://input'), true);
+//     $result = $userController->createUser($data);
+//     return json_encode([
+//         'message' => $result ? 'User created successfully' : 'Failed to create user',
+//         'success' => $result
+//     ]);
+// });
+
 $router->put('/api/users/:id', function ($id) use ($userController, $authMiddleware) {
     $authMiddleware->handle(); // Validate token
 
