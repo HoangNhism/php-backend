@@ -36,6 +36,15 @@ $router->post('/api/users', function () use ($userController, $authMiddleware, $
     ]);
 });
 
+// $router->post('/api/users', function () use ($userController) {
+//     $data = json_decode(file_get_contents('php://input'), true);
+//     $result = $userController->createUser($data);
+//     return json_encode([
+//         'message' => $result ? 'User created successfully' : 'Failed to create user',
+//         'success' => $result
+//     ]);
+// });
+
 $router->put('/api/users/:id', function ($id) use ($userController, $authMiddleware) {
     $authMiddleware->handle(); // Validate token
 
@@ -54,39 +63,6 @@ $router->delete('/api/users/:id', function ($id) use ($userController, $authMidd
     $result = $userController->deleteUser($id);
     return json_encode([
         'message' => $result ? 'User deleted successfully' : 'Failed to delete user',
-        'success' => $result
-    ]);
-});
-
-$router->get('/api/users/field/:field/:value', function ($field, $value) use ($userController, $authMiddleware) {
-    $authMiddleware->handle(); // Validate token
-
-    $users = $userController->getUsersByField($field, $value);
-    return json_encode($users);
-});
-
-$router->put('/api/users/:id/block', function ($id) use ($userController, $authMiddleware, $roleMiddleware) {
-    $user = $authMiddleware->handle(); // Validate token
-    $roleMiddleware->handle($user, 'Admin'); // Restrict to Admin role
-
-    $result = $userController->blockUser($id);
-    return json_encode([
-        'message' => $result ? 'User blocked successfully' : 'Failed to block user',
-        'success' => $result
-    ]);
-});
-
-$router->post('/api/users/:id/upload', function ($id) use ($userController, $authMiddleware) {
-    $authMiddleware->handle(); // Validate token
-
-    $fileData = [
-        'fileName' => $_FILES['file']['name'],
-        'fileUrl' => $_FILES['file']['tmp_name'],
-        'fileType' => pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION)
-    ];
-    $result = $userController->uploadFile($id, $fileData);
-    return json_encode([
-        'message' => $result ? 'File uploaded successfully' : 'Failed to upload file',
         'success' => $result
     ]);
 });
