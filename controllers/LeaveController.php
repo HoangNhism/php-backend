@@ -57,6 +57,8 @@ class LeaveController {
         $leaveRequest->leave_type = $data['leaveType'];
         $leaveRequest->start_date = $data['startDate'];
         $leaveRequest->end_date = $data['endDate'];
+        $leaveRequest->reason = isset($data['reason']) ? $data['reason'] : 'PERSONAL';
+        $leaveRequest->custom_reason = isset($data['customReason']) ? $data['customReason'] : null;
         
         // Tạo yêu cầu
         if($leaveRequest->createRequest()) {
@@ -239,6 +241,8 @@ class LeaveController {
                     "end_date" => $row['end_date'],
                     "status" => $row['status'],
                     "reject_reason" => $row['reject_reason'],
+                    "reason" => $row['reason'],
+                    "custom_reason" => $row['custom_reason'],
                     "created_at" => $row['created_at']
                 );
                 
@@ -277,6 +281,8 @@ class LeaveController {
                     "end_date" => $row['end_date'],
                     "status" => $row['status'],
                     "reject_reason" => $row['reject_reason'],
+                    "reason" => $row['reason'],
+                    "custom_reason" => $row['custom_reason'],
                     "created_at" => $row['created_at']
                 );
                 

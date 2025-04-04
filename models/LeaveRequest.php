@@ -10,6 +10,7 @@ class LeaveRequest {
     public $start_date;
     public $end_date;
     public $reason;
+    public $custom_reason;
     public $status;
     public $reject_reason;
     public $created_at;
@@ -26,8 +27,8 @@ class LeaveRequest {
         
         // Create query
         $query = "INSERT INTO leave_requests 
-                  (id, user_id, leave_type, start_date, end_date, status) 
-                  VALUES (?, ?, ?, ?, ?, 'Pending')";
+                  (id, user_id, leave_type, start_date, end_date, reason, custom_reason, status) 
+                  VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending')";
         
         // Prepare statement
         $stmt = $this->conn->prepare($query);
@@ -37,6 +38,8 @@ class LeaveRequest {
         $this->leave_type = htmlspecialchars(strip_tags($this->leave_type));
         $this->start_date = htmlspecialchars(strip_tags($this->start_date));
         $this->end_date = htmlspecialchars(strip_tags($this->end_date));
+        $this->reason = htmlspecialchars(strip_tags($this->reason ?? 'PERSONAL'));
+        $this->custom_reason = isset($this->custom_reason) ? htmlspecialchars(strip_tags($this->custom_reason)) : null;
         
         // Bind parameters
         $stmt->bindParam(1, $this->id);
@@ -44,6 +47,8 @@ class LeaveRequest {
         $stmt->bindParam(3, $this->leave_type);
         $stmt->bindParam(4, $this->start_date);
         $stmt->bindParam(5, $this->end_date);
+        $stmt->bindParam(6, $this->reason);
+        $stmt->bindParam(7, $this->custom_reason);
         
         // Execute query
         if($stmt->execute()) {
@@ -103,6 +108,8 @@ class LeaveRequest {
             $this->leave_type = $row['leave_type'];
             $this->start_date = $row['start_date'];
             $this->end_date = $row['end_date'];
+            $this->reason = $row['reason'];
+            $this->custom_reason = $row['custom_reason'];
             $this->status = $row['status'];
             $this->reject_reason = $row['reject_reason'];
             $this->created_at = $row['created_at'];

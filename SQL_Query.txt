@@ -93,6 +93,8 @@ CREATE TABLE leave_requests (
   leave_type ENUM('Annual', 'Sick', 'Maternity', 'Unpaid') NOT NULL,
   start_date DATE NOT NULL,
   end_date DATE NOT NULL,
+  reason ENUM('PERSONAL', 'MEDICAL', 'VACATION', 'EMERGENCY', 'OTHER') DEFAULT 'PERSONAL',
+  custom_reason VARCHAR(255),
   status ENUM('Pending', 'Approved', 'Rejected') DEFAULT 'Pending',
   reject_reason VARCHAR(255),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
