@@ -52,4 +52,24 @@ class UserController
     {
         return $this->userModel->deleteUser($id);
     }
+
+    public function changePassword($id, $oldPassword, $newPassword)
+    {
+        return $this->userModel->changePassword($id, $oldPassword, $newPassword);
+    }
+
+    public function blockUser($id)
+    {
+        return $this->userModel->blockUser($id);
+    }
+
+    public function getBlockedUsers()
+    {
+        return $this->userModel->getBlockedUsers();
+    }
+
+    public function unblockUser($id)
+    {
+        return $this->userModel->unblockUser($id);
+    }
 }
