@@ -1,12 +1,8 @@
 <?php
 class Router {
     private $routes = [];
-    private $notFoundHandler;
-    
-    public function __construct() {
-        error_log("[DEBUG] Router initialized");
-    }
-    
+    private $notFoundCallback;
+
     /**
      * Register a GET route
      * 
@@ -16,7 +12,6 @@ class Router {
      */
     public function get($path, $callback) {
         $this->routes['GET'][$path] = $callback;
-        error_log("[DEBUG] Registered GET route: " . $path);
         return $this;
     }
 
@@ -29,7 +24,6 @@ class Router {
      */
     public function post($path, $callback) {
         $this->routes['POST'][$path] = $callback;
-        error_log("[DEBUG] Registered POST route: " . $path);
         return $this;
     }
 
@@ -42,7 +36,6 @@ class Router {
      */
     public function put($path, $callback) {
         $this->routes['PUT'][$path] = $callback;
-        error_log("[DEBUG] Registered PUT route: " . $path);
         return $this;
     }
 
@@ -55,7 +48,6 @@ class Router {
      */
     public function delete($path, $callback) {
         $this->routes['DELETE'][$path] = $callback;
-        error_log("[DEBUG] Registered DELETE route: " . $path);
         return $this;
     }
 
@@ -66,7 +58,7 @@ class Router {
      * @return Router
      */
     public function notFound($callback) {
-        $this->notFoundHandler = $callback;
+        $this->notFoundCallback = $callback;
         return $this;
     }
 
@@ -74,57 +66,67 @@ class Router {
      * Resolve the current route
      */
     public function resolve() {
+        // Get the HTTP method and URI path
         $method = $_SERVER['REQUEST_METHOD'];
-        
-        // Get the path from the REQUEST_URI
         $uri = $_SERVER['REQUEST_URI'];
-        error_log("[DEBUG] Original URI: " . $uri);
-        
-        // Remove query string
-        $uri = parse_url($uri, PHP_URL_PATH);
-        error_log("[DEBUG] URI without query: " . $uri);
-        
-        // No need to remove base folder since we're just using the root path
-        // Comment out this section to remove /php-backend path handling
-        /*
-        $baseFolder = '/php-backend';
-        if (strpos($uri, $baseFolder) === 0) {
-            $uri = substr($uri, strlen($baseFolder));
+
+        // Parse the URI
+        $path = parse_url($uri, PHP_URL_PATH);
+
+        // Remove base path from URL (if needed)
+        $basePath = str_replace('/index.php', '', $_SERVER['SCRIPT_NAME']);
+        $path = str_replace($basePath, '', $path);
+
+        // Clean up the path
+        $path = rtrim($path, '/');
+        if (empty($path)) {
+            $path = '/';
         }
-        */
-        
-        error_log("[DEBUG] Final processed URI: " . $uri);
-        error_log("[DEBUG] REQUEST_METHOD: " . $method);
-        
-        // Check for direct route match
-        if (isset($this->routes[$method][$uri])) {
-            error_log("[DEBUG] Found exact route match: " . $uri);
-            echo call_user_func($this->routes[$method][$uri]);
-            return;
+
+        // Check for HTTP method override (for PUT, DELETE from forms)
+        if ($method === 'POST' && isset($_POST['_method'])) {
+            $method = strtoupper($_POST['_method']);
         }
-        
-        // Check for routes with parameters
-        foreach ($this->routes[$method] ?? [] as $route => $callback) {
-            $pattern = $this->convertRouteToRegex($route);
-            error_log("[DEBUG] Checking pattern: " . $pattern . " against URI: " . $uri);
-            
-            if (preg_match($pattern, $uri, $matches)) {
-                error_log("[DEBUG] Found parameterized route match: " . $route);
-                
-                // Remove the full match
-                array_shift($matches);
-                
-                echo call_user_func_array($callback, $matches);
+
+        // Check if the route exists
+        if (isset($this->routes[$method])) {
+            // Check for exact match
+            if (isset($this->routes[$method][$path])) {
+                // Execute the callback
+                $callback = $this->routes[$method][$path];
+                echo call_user_func($callback);
                 return;
             }
+
+            // Check for dynamic routes with parameters
+            foreach ($this->routes[$method] as $route => $callback) {
+                // If the route doesn't have parameters, skip it
+                if (strpos($route, ':') === false) {
+                    continue;
+                }
+
+                // Convert route pattern to regex
+                $pattern = $this->convertRouteToRegex($route);
+
+                // Check if the path matches the pattern
+                if (preg_match($pattern, $path, $matches)) {
+                    // Remove the first match (the full match)
+                    array_shift($matches);
+
+                    // Execute the callback with parameters
+                    echo call_user_func_array($callback, $matches);
+                    return;
+                }
+            }
         }
-        
-        // No route found
-        error_log("[DEBUG] No route found for: " . $uri);
-        if ($this->notFoundHandler) {
-            echo call_user_func($this->notFoundHandler);
+
+        // Route not found, call the not found callback
+        if ($this->notFoundCallback) {
+            echo call_user_func($this->notFoundCallback);
         } else {
-            echo "404 Not Found";
+            // Default 404 response
+            header("HTTP/1.0 404 Not Found");
+            echo '404 Not Found';
         }
     }
 
@@ -135,10 +137,13 @@ class Router {
      * @return string The regex pattern
      */
     private function convertRouteToRegex($route) {
-        // Convert routes like '/api/users/:id' to regex patterns
-        // that capture the parameters
-        $pattern = preg_replace('/\/:([^\/]+)/', '/([^/]+)', $route);
-        return "#^" . $pattern . "$#";
+        // Replace :param with capture groups
+        $pattern = preg_replace('/:[a-zA-Z0-9]+/', '([^/]+)', $route);
+
+        // Escape forward slashes and add delimiters
+        $pattern = '#^' . $pattern . '$#';
+
+        return $pattern;
     }
 }
 ?>
