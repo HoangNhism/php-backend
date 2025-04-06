@@ -24,6 +24,15 @@ $router->get('/api/users/:id', function ($id) use ($userController, $authMiddlew
     return json_encode($user);
 });
 
+$router->post('/api/register', function () use ($userController) {
+    $data = json_decode(file_get_contents('php://input'), true);
+    $result = $userController->createUser($data);
+    return json_encode([
+        'message' => $result ? 'Đăng ký tài khoản thành công' : 'Đăng ký tài khoản thất bại',
+        'success' => $result
+    ]);
+});
+
 $router->post('/api/users', function () use ($userController, $authMiddleware, $roleMiddleware) {
     $user = $authMiddleware->handle(); // Validate token
     $roleMiddleware->handle($user, 'Admin'); // Restrict to Admin role

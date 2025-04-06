@@ -16,7 +16,7 @@ CREATE TABLE users (
   position VARCHAR(100),
   hire_date DATE,
   status ENUM('Active', 'Inactive', 'Resigned') DEFAULT 'Active',
-  role ENUM('Admin', 'Employee', 'Manager', 'Account') NOT NULL,
+  role ENUM('Admin', 'Employee', 'Manager', 'Account', 'User') NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   isDelete BOOLEAN DEFAULT FALSE

@@ -27,6 +27,27 @@ class LeaveController {
             );
         }
         
+        // Kiểm tra ngày hợp lệ
+        $startDate = new DateTime($data['startDate']);
+        $endDate = new DateTime($data['endDate']);
+        $today = new DateTime();
+        
+        // Kiểm tra ngày bắt đầu không ở quá khứ
+        if($startDate < $today) {
+            return array(
+                "success" => false,
+                "message" => "Ngày bắt đầu nghỉ phép không thể ở quá khứ."
+            );
+        }
+        
+        // Kiểm tra ngày kết thúc phải sau hoặc trùng ngày bắt đầu
+        if($endDate < $startDate) {
+            return array(
+                "success" => false,
+                "message" => "Ngày kết thúc phải sau hoặc trùng ngày bắt đầu."
+            );
+        }
+        
         // Khởi tạo đối tượng
         $leaveRequest = new LeaveRequest($this->db);
         $leaveBalance = new LeaveBalance($this->db);
@@ -34,21 +55,18 @@ class LeaveController {
         // Lấy số ngày nghỉ phép còn lại
         $leaveBalance->user_id = $user->id;
         if(!$leaveBalance->getBalance()) {
-            // Khởi tạo số ngày nghỉ phép mặc định
-            $leaveBalance->total_days = 12; // Số ngày mặc định
+            // Để class LeaveBalance xử lý tính toán dựa trên hire_date
             $leaveBalance->initialize();
         }
         
         // Kiểm tra số ngày nghỉ
-        $startDate = new DateTime($data['startDate']);
-        $endDate = new DateTime($data['endDate']);
         $interval = $startDate->diff($endDate);
         $diffDays = $interval->days + 1; // +1 để tính cả ngày cuối
         
         if($leaveBalance->total_days < $diffDays) {
             return array(
                 "success" => false,
-                "message" => "Không đủ số ngày phép để nghỉ."
+                "message" => "Không đủ số ngày phép để nghỉ. Số ngày còn lại: " . $leaveBalance->total_days . ", Số ngày yêu cầu: " . $diffDays
             );
         }
         
@@ -58,7 +76,15 @@ class LeaveController {
         $leaveRequest->start_date = $data['startDate'];
         $leaveRequest->end_date = $data['endDate'];
         $leaveRequest->reason = isset($data['reason']) ? $data['reason'] : 'PERSONAL';
-        $leaveRequest->custom_reason = isset($data['customReason']) ? $data['customReason'] : null;
+        $leaveRequest->custom_reason = isset($data['customReason']) && $data['reason'] == 'OTHER' ? $data['customReason'] : null;
+        
+        // Kiểm tra trùng lặp trước khi tạo yêu cầu
+        if($leaveRequest->checkOverlap()) {
+            return array(
+                "success" => false,
+                "message" => "Bạn đã có yêu cầu nghỉ phép trong khoảng thời gian này."
+            );
+        }
         
         // Tạo yêu cầu
         if($leaveRequest->createRequest()) {
@@ -69,7 +95,7 @@ class LeaveController {
         } else {
             return array(
                 "success" => false,
-                "message" => "Không thể tạo yêu cầu nghỉ phép."
+                "message" => "Không thể tạo yêu cầu nghỉ phép. Vui lòng kiểm tra lại thông tin."
             );
         }
     }
@@ -108,7 +134,7 @@ class LeaveController {
         if($leaveRequest->status != 'Pending') {
             return array(
                 "success" => false,
-                "message" => "Yêu cầu nghỉ phép này đã được xử lý trước đó."
+                "message" => "Yêu cầu nghỉ phép này đã được xử lý trước đó với trạng thái: " . $leaveRequest->status
             );
         }
         
@@ -117,10 +143,14 @@ class LeaveController {
             // Lấy số ngày nghỉ phép
             $leaveBalance->user_id = $leaveRequest->user_id;
             if(!$leaveBalance->getBalance()) {
-                return array(
-                    "success" => false,
-                    "message" => "Không tìm thấy thông tin số ngày phép của nhân viên."
-                );
+                // Nếu chưa có thông tin số ngày phép, khởi tạo
+                $leaveBalance->initialize();
+                if(!$leaveBalance->getBalance()) {
+                    return array(
+                        "success" => false,
+                        "message" => "Không thể khởi tạo thông tin số ngày phép của nhân viên."
+                    );
+                }
             }
             
             // Tính số ngày nghỉ
@@ -132,7 +162,7 @@ class LeaveController {
             if($leaveBalance->total_days < $diffDays) {
                 return array(
                     "success" => false,
-                    "message" => "Không đủ ngày phép để phê duyệt."
+                    "message" => "Không đủ ngày phép để phê duyệt. Số ngày còn lại: " . $leaveBalance->total_days . ", Số ngày yêu cầu: " . $diffDays
                 );
             }
             
@@ -153,7 +183,7 @@ class LeaveController {
         if($leaveRequest->processRequest()) {
             return array(
                 "success" => true,
-                "message" => "Đã xử lý yêu cầu nghỉ phép thành công."
+                "message" => "Đã " . ($data['status'] == 'Approved' ? 'phê duyệt' : 'từ chối') . " yêu cầu nghỉ phép thành công."
             );
         } else {
             return array(
@@ -175,8 +205,7 @@ class LeaveController {
                 "data" => $leaveBalance->total_days
             );
         } else {
-            // Khởi tạo số ngày nghỉ phép mặc định và trả về
-            $leaveBalance->total_days = 12; // Số ngày mặc định
+            // Để class LeaveBalance xử lý tính toán dựa trên hire_date
             $leaveBalance->initialize();
             
             return array(
@@ -199,7 +228,12 @@ class LeaveController {
         // Khởi tạo đối tượng
         $leaveBalance = new LeaveBalance($this->db);
         $leaveBalance->user_id = $data['userId'];
-        $leaveBalance->total_days = isset($data['initialDays']) ? $data['initialDays'] : 12;
+        
+        // Nếu có số ngày ban đầu được chỉ định, sử dụng giá trị đó
+        if (isset($data['initialDays'])) {
+            $leaveBalance->total_days = $data['initialDays'];
+        }
+        // Ngược lại, để LeaveBalance.initialize() xử lý tính toán dựa trên hire_date
         
         if($leaveBalance->initialize()) {
             return array(
@@ -298,6 +332,25 @@ class LeaveController {
                 "success" => true,
                 "data" => array(),
                 "message" => "Bạn không có yêu cầu nghỉ phép nào."
+            );
+        }
+    }
+    
+    // Reset lại số ngày nghỉ phép hàng năm cho tất cả nhân viên (thực hiện định kỳ đầu năm)
+    public function resetAnnualLeaveBalances() {
+        // Chỉ Admin mới có quyền thực hiện chức năng này
+        $leaveBalance = new LeaveBalance($this->db);
+        $resetCount = $leaveBalance->resetAnnualBalance();
+        
+        if($resetCount > 0) {
+            return array(
+                "success" => true,
+                "message" => "Đã cập nhật số ngày nghỉ phép cho $resetCount nhân viên."
+            );
+        } else {
+            return array(
+                "success" => false,
+                "message" => "Không có nhân viên nào được cập nhật số ngày nghỉ phép."
             );
         }
     }
