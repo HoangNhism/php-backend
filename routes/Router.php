@@ -69,25 +69,25 @@ class Router {
         // Get the HTTP method and URI path
         $method = $_SERVER['REQUEST_METHOD'];
         $uri = $_SERVER['REQUEST_URI'];
-
+        
         // Parse the URI
         $path = parse_url($uri, PHP_URL_PATH);
-
+        
         // Remove base path from URL (if needed)
         $basePath = str_replace('/index.php', '', $_SERVER['SCRIPT_NAME']);
         $path = str_replace($basePath, '', $path);
-
+        
         // Clean up the path
         $path = rtrim($path, '/');
         if (empty($path)) {
             $path = '/';
         }
-
+        
         // Check for HTTP method override (for PUT, DELETE from forms)
         if ($method === 'POST' && isset($_POST['_method'])) {
             $method = strtoupper($_POST['_method']);
         }
-
+        
         // Check if the route exists
         if (isset($this->routes[$method])) {
             // Check for exact match
@@ -97,29 +97,29 @@ class Router {
                 echo call_user_func($callback);
                 return;
             }
-
+            
             // Check for dynamic routes with parameters
             foreach ($this->routes[$method] as $route => $callback) {
                 // If the route doesn't have parameters, skip it
                 if (strpos($route, ':') === false) {
                     continue;
                 }
-
+                
                 // Convert route pattern to regex
                 $pattern = $this->convertRouteToRegex($route);
-
+                
                 // Check if the path matches the pattern
                 if (preg_match($pattern, $path, $matches)) {
                     // Remove the first match (the full match)
                     array_shift($matches);
-
+                    
                     // Execute the callback with parameters
                     echo call_user_func_array($callback, $matches);
                     return;
                 }
             }
         }
-
+        
         // Route not found, call the not found callback
         if ($this->notFoundCallback) {
             echo call_user_func($this->notFoundCallback);
@@ -139,10 +139,10 @@ class Router {
     private function convertRouteToRegex($route) {
         // Replace :param with capture groups
         $pattern = preg_replace('/:[a-zA-Z0-9]+/', '([^/]+)', $route);
-
+        
         // Escape forward slashes and add delimiters
         $pattern = '#^' . $pattern . '$#';
-
+        
         return $pattern;
     }
 }

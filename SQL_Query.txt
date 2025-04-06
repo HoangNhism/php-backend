@@ -93,6 +93,8 @@ CREATE TABLE leave_requests (
   leave_type ENUM('Annual', 'Sick', 'Maternity', 'Unpaid') NOT NULL,
   start_date DATE NOT NULL,
   end_date DATE NOT NULL,
+  reason ENUM('PERSONAL', 'MEDICAL', 'VACATION', 'EMERGENCY', 'OTHER') DEFAULT 'PERSONAL',
+  custom_reason VARCHAR(255),
   status ENUM('Pending', 'Approved', 'Rejected') DEFAULT 'Pending',
   reject_reason VARCHAR(255),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -110,15 +112,22 @@ CREATE TABLE leave_balance (
 
 -- Create Payrolls table
 CREATE TABLE payrolls (
-  id VARCHAR(16) PRIMARY KEY,
-  employee_id VARCHAR(16) NOT NULL,
-  base_salary FLOAT NOT NULL,
-  allowances FLOAT DEFAULT 0,
-  deductions FLOAT DEFAULT 0,
-  net_salary FLOAT NOT NULL,
-  pay_period VARCHAR(255) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (employee_id) REFERENCES users(id) ON DELETE CASCADE
+    id VARCHAR(36) PRIMARY KEY,
+    employee_id VARCHAR(36) NOT NULL,
+    base_salary DECIMAL(15,2) NOT NULL,
+    allowances DECIMAL(15,2) DEFAULT 0,
+    deductions DECIMAL(15,2) DEFAULT 0,
+    social_insurance DECIMAL(15,2) DEFAULT 0,
+    health_insurance DECIMAL(15,2) DEFAULT 0,
+    unemployment_insurance DECIMAL(15,2) DEFAULT 0,
+    personal_income_tax DECIMAL(15,2) DEFAULT 0,
+    total_deductions DECIMAL(15,2) DEFAULT 0,
+    net_salary DECIMAL(15,2) NOT NULL,
+    pay_period VARCHAR(20) DEFAULT 'Monthly',
+    region VARCHAR(5) DEFAULT 'I',
+    status VARCHAR(20) DEFAULT 'Completed',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employee_id) REFERENCES users(id)
 );
 
 -- Create Performance Reviews table
