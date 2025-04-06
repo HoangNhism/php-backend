@@ -16,3 +16,12 @@ $router->get('/api', function() {
         'version' => '1.0.0'
     ]);
 });
+
+// Default notifications endpoint khi không có userId
+$router->get('/api/notifications', function() {
+    return json_encode([
+        'success' => true,
+        'data' => [],
+        'message' => 'Không có thông báo'
+    ]);
+});

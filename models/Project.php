@@ -54,7 +54,6 @@ class ProjectModel
 
         // Generate random ID
         $data['id'] = bin2hex(random_bytes(8));
-
         // Bind parameters
         $stmt->bindParam(':id', $data['id']);
         $stmt->bindParam(':name', $data['name']);

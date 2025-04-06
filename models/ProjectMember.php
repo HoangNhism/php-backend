@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/Notification.php';
+
 class ProjectMemberModel
 {
     private $conn;
@@ -30,7 +31,6 @@ class ProjectMemberModel
         $notificationModel = new NotificationModel($this->conn);
         $notificationModel->createNotification($userId, $type, $message, $link);
     }
-
     /**
      * Add a project member.
      */

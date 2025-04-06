@@ -10,6 +10,7 @@ class LeaveRequest {
     public $start_date;
     public $end_date;
     public $reason;
+    public $custom_reason;
     public $status;
     public $reject_reason;
     public $created_at;
@@ -21,13 +22,18 @@ class LeaveRequest {
     
     // Tạo yêu cầu nghỉ phép mới
     public function createRequest() {
+        // Kiểm tra trùng lặp ngày nghỉ
+        if($this->checkOverlap()) {
+            return false;
+        }
+        
         // Generate a random 16-character ID
         $this->id = substr(md5(rand()), 0, 16);
         
         // Create query
         $query = "INSERT INTO leave_requests 
-                  (id, user_id, leave_type, start_date, end_date, status) 
-                  VALUES (?, ?, ?, ?, ?, 'Pending')";
+                  (id, user_id, leave_type, start_date, end_date, reason, custom_reason, status) 
+                  VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending')";
         
         // Prepare statement
         $stmt = $this->conn->prepare($query);
@@ -37,6 +43,8 @@ class LeaveRequest {
         $this->leave_type = htmlspecialchars(strip_tags($this->leave_type));
         $this->start_date = htmlspecialchars(strip_tags($this->start_date));
         $this->end_date = htmlspecialchars(strip_tags($this->end_date));
+        $this->reason = htmlspecialchars(strip_tags($this->reason ?? 'PERSONAL'));
+        $this->custom_reason = isset($this->custom_reason) ? htmlspecialchars(strip_tags($this->custom_reason)) : null;
         
         // Bind parameters
         $stmt->bindParam(1, $this->id);
@@ -44,6 +52,8 @@ class LeaveRequest {
         $stmt->bindParam(3, $this->leave_type);
         $stmt->bindParam(4, $this->start_date);
         $stmt->bindParam(5, $this->end_date);
+        $stmt->bindParam(6, $this->reason);
+        $stmt->bindParam(7, $this->custom_reason);
         
         // Execute query
         if($stmt->execute()) {
@@ -51,6 +61,37 @@ class LeaveRequest {
         }
         
         return false;
+    }
+    
+    // Kiểm tra trùng lặp ngày nghỉ
+    public function checkOverlap() {
+        // Kiểm tra nếu đã có yêu cầu nghỉ phép trùng lặp hoặc chờ duyệt
+        $query = "SELECT * FROM leave_requests 
+                  WHERE user_id = ? 
+                  AND status IN ('Pending', 'Approved') 
+                  AND (
+                      (start_date <= ? AND end_date >= ?) OR 
+                      (start_date <= ? AND end_date >= ?) OR
+                      (start_date >= ? AND end_date <= ?)
+                  )";
+                  
+        // Prepare statement
+        $stmt = $this->conn->prepare($query);
+        
+        // Bind parameters
+        $stmt->bindParam(1, $this->user_id);
+        $stmt->bindParam(2, $this->start_date); // start_date <= new_end_date
+        $stmt->bindParam(3, $this->start_date); // end_date >= new_start_date
+        $stmt->bindParam(4, $this->end_date);   // start_date <= new_end_date
+        $stmt->bindParam(5, $this->end_date);   // end_date >= new_end_date
+        $stmt->bindParam(6, $this->start_date); // start_date >= new_start_date
+        $stmt->bindParam(7, $this->end_date);   // end_date <= new_end_date
+        
+        // Execute query
+        $stmt->execute();
+        
+        // Nếu có kết quả, có nghĩa là trùng lặp
+        return $stmt->rowCount() > 0;
     }
     
     // Xử lý yêu cầu (phê duyệt/từ chối)
@@ -103,6 +144,8 @@ class LeaveRequest {
             $this->leave_type = $row['leave_type'];
             $this->start_date = $row['start_date'];
             $this->end_date = $row['end_date'];
+            $this->reason = $row['reason'];
+            $this->custom_reason = $row['custom_reason'];
             $this->status = $row['status'];
             $this->reject_reason = $row['reject_reason'];
             $this->created_at = $row['created_at'];
