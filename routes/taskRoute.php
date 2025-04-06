@@ -11,10 +11,7 @@ $router->post('/api/tasks', function () use ($taskController, $authMiddleware) {
 
     $data = json_decode(file_get_contents('php://input'), true);
     $result = $taskController->createTask($data);
-    return json_encode([
-        'message' => $result ? 'Task created successfully' : 'Failed to create task',
-        'success' => $result
-    ]);
+    return json_encode($result);
 });
 
 $router->get('/api/tasks', function () use ($taskController, $authMiddleware) {
@@ -50,10 +47,7 @@ $router->put('/api/tasks/:id/status', function ($id) use ($taskController, $auth
 
     $data = json_decode(file_get_contents('php://input'), true);
     $result = $taskController->updateTaskStatus($id, $data['status']);
-    return json_encode([
-        'message' => $result ? 'Task status updated successfully' : 'Failed to update task status',
-        'success' => $result
-    ]);
+    return json_encode($result);
 });
 
 $router->put('/api/tasks/:id/priority', function ($id) use ($taskController, $authMiddleware) {
@@ -61,18 +55,20 @@ $router->put('/api/tasks/:id/priority', function ($id) use ($taskController, $au
 
     $data = json_decode(file_get_contents('php://input'), true);
     $result = $taskController->updateTaskPriority($id, $data['priority']);
-    return json_encode([
-        'message' => $result ? 'Task priority updated successfully' : 'Failed to update task priority',
-        'success' => $result
-    ]);
+    return json_encode($result);
 });
 
 $router->delete('/api/tasks/:id', function ($id) use ($taskController, $authMiddleware) {
     $authMiddleware->handle(); // Validate token
 
     $result = $taskController->deleteTask($id);
-    return json_encode([
-        'message' => $result ? 'Task deleted successfully' : 'Failed to delete task',
-        'success' => $result
-    ]);
+    return json_encode($result);
+});
+
+$router->put('/api/tasks/:id/assignee', function ($id) use ($taskController, $authMiddleware) {
+    $authMiddleware->handle(); // Validate token
+
+    $data = json_decode(file_get_contents('php://input'), true);
+    $result = $taskController->changeAssignee($id, $data['new_user_id']);
+    return json_encode($result);
 });

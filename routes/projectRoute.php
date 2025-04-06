@@ -11,10 +11,7 @@ $router->post('/api/projects', function () use ($projectController, $authMiddlew
 
     $data = json_decode(file_get_contents('php://input'), true);
     $result = $projectController->createProject($data);
-    return json_encode([
-        'message' => $result ? 'Project created successfully' : 'Failed to create project',
-        'success' => $result
-    ]);
+    return json_encode($result);
 });
 
 $router->get('/api/projects', function () use ($projectController, $authMiddleware) {
@@ -43,18 +40,12 @@ $router->put('/api/projects/:id', function ($id) use ($projectController, $authM
 
     $data = json_decode(file_get_contents('php://input'), true);
     $result = $projectController->updateProject($id, $data);
-    return json_encode([
-        'message' => $result ? 'Project updated successfully' : 'Failed to update project',
-        'success' => $result
-    ]);
+    return json_encode($result);
 });
 
 $router->delete('/api/projects/:id', function ($id) use ($projectController, $authMiddleware) {
     $authMiddleware->handle(); // Validate token
 
     $result = $projectController->deleteProject($id);
-    return json_encode([
-        'message' => $result ? 'Project deleted successfully' : 'Failed to delete project',
-        'success' => $result
-    ]);
+    return json_encode($result);
 });

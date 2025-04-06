@@ -30,6 +30,8 @@ if ($isApiRoute) {
 require_once './routes/api.php';
 require_once './routes/web.php';
 
+
+
 // Handle 404 Not Found
 $router->notFound(function() use ($isApiRoute) {
     header("HTTP/1.0 404 Not Found");

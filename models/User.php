@@ -97,6 +97,15 @@ class UserModel
         return $stmt->fetch(PDO::FETCH_OBJ);
     }
 
+    public function getUserByRole($role)
+    {
+        $query = "SELECT * FROM " . $this->table_name . " WHERE role = :role AND isDelete = 0";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':role', $role);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
+    }
+
     /**
      * Add a new user.
      */

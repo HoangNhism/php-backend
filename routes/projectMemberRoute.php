@@ -11,10 +11,7 @@ $router->post('/api/project-members', function () use ($projectMemberController,
 
     $data = json_decode(file_get_contents('php://input'), true);
     $result = $projectMemberController->addProjectMember($data['project_id'], $data['user_id']);
-    return json_encode([
-        'message' => $result ? 'Member added successfully' : 'Failed to add member',
-        'success' => $result
-    ]);
+    return json_encode($result);
 });
 
 $router->get('/api/project-members', function () use ($projectMemberController, $authMiddleware) {
@@ -43,8 +40,5 @@ $router->delete('/api/project-members', function () use ($projectMemberControlle
 
     $data = json_decode(file_get_contents('php://input'), true);
     $result = $projectMemberController->removeMember($data['project_id'], $data['user_id']);
-    return json_encode([
-        'message' => $result ? 'Member removed successfully' : 'Failed to remove member',
-        'success' => $result
-    ]);
+    return json_encode($result);
 });
