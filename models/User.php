@@ -359,4 +359,28 @@ class UserModel
         $stmt->bindParam(':id', $id);
         return $stmt->execute();
     }
+
+    /**
+     * Retrieve the role of a user by ID.
+     */
+    public function getUserRole($id)
+    {
+        $query = "SELECT role FROM " . $this->table_name . " WHERE id = :id AND isDelete = 0";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $id);
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_OBJ);
+
+        if ($result) {
+            return [
+                'success' => true,
+                'role' => $result->role
+            ];
+        }
+
+        return [
+            'success' => false,
+            'message' => 'User not found'
+        ];
+    }
 }

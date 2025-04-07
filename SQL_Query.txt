@@ -75,6 +75,18 @@ CREATE TABLE tasks (
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
+-- Create Notification table
+CREATE TABLE notifications (
+    id VARCHAR(16) PRIMARY KEY,
+    user_id VARCHAR(16) NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    message TEXT NOT NULL,
+    link VARCHAR(255),
+    isRead BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 -- Create Chats table
 CREATE TABLE chats (
   id VARCHAR(16) PRIMARY KEY,

@@ -53,27 +53,23 @@ class UserController
         return $this->userModel->deleteUser($id);
     }
 
-    /**
-     * Get users by a specific field.
-     */
-    public function getUsersByField($field, $value)
+    public function changePassword($id, $oldPassword, $newPassword)
     {
-        return $this->userModel->getUsersByField($field, $value);
+        return $this->userModel->changePassword($id, $oldPassword, $newPassword);
     }
 
-    /**
-     * Block a user.
-     */
     public function blockUser($id)
     {
         return $this->userModel->blockUser($id);
     }
 
-    /**
-     * Upload a file for a user.
-     */
-    public function uploadFile($userId, $fileData)
+    public function getBlockedUsers()
     {
-        return $this->userModel->uploadFile($userId, $fileData);
+        return $this->userModel->getBlockedUsers();
+    }
+
+    public function unblockUser($id)
+    {
+        return $this->userModel->unblockUser($id);
     }
 }
