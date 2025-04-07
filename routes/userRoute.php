@@ -39,40 +39,21 @@ $router->post('/api/users', function () use ($userController, $authMiddleware, $
 
     $data = json_decode(file_get_contents('php://input'), true);
     $result = $userController->createUser($data);
-    return json_encode($result);
+    return json_encode([
+        'message' => $result ? 'User created successfully' : 'Failed to create user',
+        'success' => $result
+    ]);
 });
-
-// $router->post('/api/users', function () use ($userController) {
-//     $data = json_decode(file_get_contents('php://input'), true);
-//     $result = $userController->createUser($data);
-//     return json_encode($result);
-// });
 
 $router->put('/api/users/:id', function ($id) use ($userController, $authMiddleware) {
     $authMiddleware->handle(); // Validate token
 
     $data = json_decode(file_get_contents('php://input'), true);
     $result = $userController->updateUser($id, $data);
-    return json_encode($result);
-});
-
-$router->put('/api/users/:id/password', function ($id) use ($userController, $authMiddleware) {
-    $authMiddleware->handle(); // Validate token
-
-    // Decode the JSON input and extract the old and new passwords
-    $data = json_decode(file_get_contents('php://input'), true);
-    $oldPassword = $data['oldPassword'] ?? null;
-    $newPassword = $data['newPassword'] ?? null;
-
-    if ($oldPassword === null || $newPassword === null) {
-        return json_encode([
-            'success' => false,
-            'message' => 'Old and new passwords are required'
-        ]);
-    }
-
-    $result = $userController->changePassword($id, $oldPassword, $newPassword);
-    return json_encode($result);
+    return json_encode([
+        'message' => $result ? 'User updated successfully' : 'Failed to update user',
+        'success' => $result
+    ]);
 });
 
 $router->delete('/api/users/:id', function ($id) use ($userController, $authMiddleware, $roleMiddleware) {
@@ -80,7 +61,17 @@ $router->delete('/api/users/:id', function ($id) use ($userController, $authMidd
     $roleMiddleware->handle($user, 'Admin'); // Restrict to Admin role
 
     $result = $userController->deleteUser($id);
-    return json_encode($result);
+    return json_encode([
+        'message' => $result ? 'User deleted successfully' : 'Failed to delete user',
+        'success' => $result
+    ]);
+});
+
+$router->get('/api/users/field/:field/:value', function ($field, $value) use ($userController, $authMiddleware) {
+    $authMiddleware->handle(); // Validate token
+
+    $users = $userController->getUsersByField($field, $value);
+    return json_encode($users);
 });
 
 $router->put('/api/users/:id/block', function ($id) use ($userController, $authMiddleware, $roleMiddleware) {
@@ -88,23 +79,25 @@ $router->put('/api/users/:id/block', function ($id) use ($userController, $authM
     $roleMiddleware->handle($user, 'Admin'); // Restrict to Admin role
 
     $result = $userController->blockUser($id);
-    return json_encode($result);
+    return json_encode([
+        'message' => $result ? 'User blocked successfully' : 'Failed to block user',
+        'success' => $result
+    ]);
 });
 
-$router->get('/api/users/blocked-users', function () use ($userController, $authMiddleware, $roleMiddleware) {
-    $user = $authMiddleware->handle(); // Validate token
-    $roleMiddleware->handle($user, 'Admin'); // Restrict to Admin role
+$router->post('/api/users/:id/upload', function ($id) use ($userController, $authMiddleware) {
+    $authMiddleware->handle(); // Validate token
 
-    $result = $userController->getBlockedUsers();
-    return json_encode($result);
-});
-
-$router->put('/api/users/:id/unblock', function ($id) use ($userController, $authMiddleware, $roleMiddleware) {
-    $user = $authMiddleware->handle(); // Validate token
-    $roleMiddleware->handle($user, 'Admin'); // Restrict to Admin role
-
-    $result = $userController->unblockUser($id);
-    return json_encode($result);
+    $fileData = [
+        'fileName' => $_FILES['file']['name'],
+        'fileUrl' => $_FILES['file']['tmp_name'],
+        'fileType' => pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION)
+    ];
+    $result = $userController->uploadFile($id, $fileData);
+    return json_encode([
+        'message' => $result ? 'File uploaded successfully' : 'Failed to upload file',
+        'success' => $result
+    ]);
 });
 
 

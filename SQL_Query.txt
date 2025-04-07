@@ -81,7 +81,8 @@ CREATE TABLE chats (
   sender_id VARCHAR(16) NOT NULL,
   receiver_id VARCHAR(16) NOT NULL,
   message TEXT NOT NULL,
-  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (sender_id) REFERENCES users(id),
   FOREIGN KEY (receiver_id) REFERENCES users(id)
 );
@@ -112,15 +113,22 @@ CREATE TABLE leave_balance (
 
 -- Create Payrolls table
 CREATE TABLE payrolls (
-  id VARCHAR(16) PRIMARY KEY,
-  employee_id VARCHAR(16) NOT NULL,
-  base_salary FLOAT NOT NULL,
-  allowances FLOAT DEFAULT 0,
-  deductions FLOAT DEFAULT 0,
-  net_salary FLOAT NOT NULL,
-  pay_period VARCHAR(255) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (employee_id) REFERENCES users(id) ON DELETE CASCADE
+    id VARCHAR(36) PRIMARY KEY,
+    employee_id VARCHAR(36) NOT NULL,
+    base_salary DECIMAL(15,2) NOT NULL,
+    allowances DECIMAL(15,2) DEFAULT 0,
+    deductions DECIMAL(15,2) DEFAULT 0,
+    social_insurance DECIMAL(15,2) DEFAULT 0,
+    health_insurance DECIMAL(15,2) DEFAULT 0,
+    unemployment_insurance DECIMAL(15,2) DEFAULT 0,
+    personal_income_tax DECIMAL(15,2) DEFAULT 0,
+    total_deductions DECIMAL(15,2) DEFAULT 0,
+    net_salary DECIMAL(15,2) NOT NULL,
+    pay_period VARCHAR(20) DEFAULT 'Monthly',
+    region VARCHAR(5) DEFAULT 'I',
+    status VARCHAR(20) DEFAULT 'Completed',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employee_id) REFERENCES users(id)
 );
 
 -- Create Performance Reviews table
