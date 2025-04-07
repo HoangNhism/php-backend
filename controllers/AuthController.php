@@ -76,7 +76,15 @@ class AuthController
             return [
                 'success' => true,
                 'message' => 'Login successful',
-                'token' => $token
+                'token' => $token,              
+                'user' => [
+                    'id' => $user->id,
+                    'email' => $user->email,
+                    'full_name' => $user->full_name,
+                    'role' => $user->role,
+                    'avatarURL' => $user->avatarURL
+                ],
+                'role' => $user->role // Thêm role trực tiếp ở mức cao nhất
             ];
         }
 

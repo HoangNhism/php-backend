@@ -14,21 +14,46 @@ class ProjectModel
      */
     public function createProject($data)
     {
-        $query = "INSERT INTO " . $this->table_name . " 
-                  (id, name, description, start_date, end_date, manager_id, isDelete) 
-                  VALUES 
-                  (:id, :name, :description, :start_date, :end_date, :manager_id, 0)";
-        
-        $stmt = $this->conn->prepare($query);
+        // Validate required fields
+        if (empty($data['name']) || strlen($data['name']) > 255) {
+            return [
+                'success' => false,
+                'message' => 'Project name is required and must not exceed 255 characters'
+            ];
+        }
 
-        // Generate random ID
-        $data['id'] = bin2hex(random_bytes(8));
+        if (empty($data['start_date']) || empty($data['end_date'])) {
+            return [
+                'success' => false,
+                'message' => 'Start date and end date are required'
+            ];
+        }
+
+        // Validate date format and logic
+        $startDate = strtotime($data['start_date']);
+        $endDate = strtotime($data['end_date']);
+        if ($startDate === false || $endDate === false || $endDate < $startDate) {
+            return [
+                'success' => false,
+                'message' => 'Invalid date format or end date is earlier than start date'
+            ];
+        }
 
         // Sanitize input data
         foreach ($data as $key => $value) {
             $data[$key] = htmlspecialchars(strip_tags($value));
         }
 
+        // Proceed with project creation
+        $query = "INSERT INTO " . $this->table_name . " 
+              (id, name, description, start_date, end_date, manager_id, isDelete) 
+              VALUES 
+              (:id, :name, :description, :start_date, :end_date, :manager_id, 0)";
+
+        $stmt = $this->conn->prepare($query);
+
+        // Generate random ID
+        $data['id'] = bin2hex(random_bytes(8));
         // Bind parameters
         $stmt->bindParam(':id', $data['id']);
         $stmt->bindParam(':name', $data['name']);
@@ -38,11 +63,19 @@ class ProjectModel
         $stmt->bindParam(':manager_id', $data['manager_id']);
 
         if ($stmt->execute()) {
-            return true;
+            // Add manager to project members
+            $projectMemberModel = new ProjectMemberModel($this->conn);
+            $projectMemberModel->addProjectMember($data['id'], $data['manager_id']);
+
+            return [
+                'success' => true,
+                'message' => 'Project created successfully'
+            ];
         } else {
-            // Log or display error info
-            print_r($stmt->errorInfo());
-            return false;
+            return [
+                'success' => false,
+                'message' => 'Failed to create project'
+            ];
         }
     }
 
@@ -147,21 +180,65 @@ class ProjectModel
      */
     public function updateProject($id, $data)
     {
-        $query = "UPDATE " . $this->table_name . " 
-                  SET name = :name, description = :description, manager_id = :manager_id 
-                  WHERE id = :id AND isDelete = 0";
-        $stmt = $this->conn->prepare($query);
+        // Validate required fields
+        if (empty($data['name']) || strlen($data['name']) > 255) {
+            return [
+                'success' => false,
+                'message' => 'Project name is required and must not exceed 255 characters'
+            ];
+        }
 
+        if (empty($data['start_date']) || empty($data['end_date'])) {
+            return [
+                'success' => false,
+                'message' => 'Start date and end date are required'
+            ];
+        }
+
+        // Validate date format and logic
+        $startDate = strtotime($data['start_date']);
+        $endDate = strtotime($data['end_date']);
+        if ($startDate === false || $endDate === false || $endDate < $startDate) {
+            return [
+                'success' => false,
+                'message' => 'Invalid date format or end date is earlier than start date'
+            ];
+        }
+
+        // Sanitize input data
         foreach ($data as $key => $value) {
             $data[$key] = htmlspecialchars(strip_tags($value));
         }
 
+        $query = "UPDATE " . $this->table_name . " 
+              SET name = :name, description = :description, start_date = :start_date, end_date = :end_date, manager_id = :manager_id 
+              WHERE id = :id AND isDelete = 0";
+        $stmt = $this->conn->prepare($query);
+
         $stmt->bindParam(':id', $id);
         $stmt->bindParam(':name', $data['name']);
         $stmt->bindParam(':description', $data['description']);
+        $stmt->bindParam(':start_date', $data['start_date']);
+        $stmt->bindParam(':end_date', $data['end_date']);
         $stmt->bindParam(':manager_id', $data['manager_id']);
 
-        return $stmt->execute();
+        if ($stmt->execute()) {
+            // Add manager to project members if not already added
+            $projectMemberModel = new ProjectMemberModel($this->conn);
+            if (!$projectMemberModel->isMember($id, $data['manager_id'])) {
+                $projectMemberModel->addProjectMember($id, $data['manager_id']);
+            }
+
+            return [
+                'success' => true,
+                'message' => 'Project updated successfully'
+            ];
+        }
+
+        return [
+            'success' => false,
+            'message' => 'Failed to update project'
+        ];
     }
 
     /**

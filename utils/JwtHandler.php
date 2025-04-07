@@ -4,7 +4,7 @@ use Firebase\JWT\Key;
 
 class JwtHandler
 {
-    private $secretKey = "your_secret_key"; // Replace with a secure key
+    private $secretKey = "aTSJ5IERiJEl0nkoQWeQyhwcsPniE7gU"; // Replace with a secure key
 
     /**
      * Generate a JWT token.

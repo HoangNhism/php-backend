@@ -52,4 +52,9 @@ class TaskController
     {
         return $this->taskModel->deleteTask($id);
     }
+
+    public function changeAssignee($taskId, $newUserId)
+    {
+        return $this->taskModel->changeAssignee($taskId, $newUserId);
+    }
 }

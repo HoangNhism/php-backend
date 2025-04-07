@@ -16,7 +16,7 @@ CREATE TABLE users (
   position VARCHAR(100),
   hire_date DATE,
   status ENUM('Active', 'Inactive', 'Resigned') DEFAULT 'Active',
-  role ENUM('Admin', 'Employee', 'Manager', 'Account') NOT NULL,
+  role ENUM('Admin', 'Employee', 'Manager', 'Account', 'User') NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   isDelete BOOLEAN DEFAULT FALSE
@@ -75,13 +75,26 @@ CREATE TABLE tasks (
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
+-- Create Notification table
+CREATE TABLE notifications (
+    id VARCHAR(16) PRIMARY KEY,
+    user_id VARCHAR(16) NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    message TEXT NOT NULL,
+    link VARCHAR(255),
+    isRead BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 -- Create Chats table
 CREATE TABLE chats (
   id VARCHAR(16) PRIMARY KEY,
   sender_id VARCHAR(16) NOT NULL,
   receiver_id VARCHAR(16) NOT NULL,
   message TEXT NOT NULL,
-  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (sender_id) REFERENCES users(id),
   FOREIGN KEY (receiver_id) REFERENCES users(id)
 );
@@ -93,6 +106,8 @@ CREATE TABLE leave_requests (
   leave_type ENUM('Annual', 'Sick', 'Maternity', 'Unpaid') NOT NULL,
   start_date DATE NOT NULL,
   end_date DATE NOT NULL,
+  reason ENUM('PERSONAL', 'MEDICAL', 'VACATION', 'EMERGENCY', 'OTHER') DEFAULT 'PERSONAL',
+  custom_reason VARCHAR(255),
   status ENUM('Pending', 'Approved', 'Rejected') DEFAULT 'Pending',
   reject_reason VARCHAR(255),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -110,15 +125,22 @@ CREATE TABLE leave_balance (
 
 -- Create Payrolls table
 CREATE TABLE payrolls (
-  id VARCHAR(16) PRIMARY KEY,
-  employee_id VARCHAR(16) NOT NULL,
-  base_salary FLOAT NOT NULL,
-  allowances FLOAT DEFAULT 0,
-  deductions FLOAT DEFAULT 0,
-  net_salary FLOAT NOT NULL,
-  pay_period VARCHAR(255) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (employee_id) REFERENCES users(id) ON DELETE CASCADE
+    id VARCHAR(36) PRIMARY KEY,
+    employee_id VARCHAR(36) NOT NULL,
+    base_salary DECIMAL(15,2) NOT NULL,
+    allowances DECIMAL(15,2) DEFAULT 0,
+    deductions DECIMAL(15,2) DEFAULT 0,
+    social_insurance DECIMAL(15,2) DEFAULT 0,
+    health_insurance DECIMAL(15,2) DEFAULT 0,
+    unemployment_insurance DECIMAL(15,2) DEFAULT 0,
+    personal_income_tax DECIMAL(15,2) DEFAULT 0,
+    total_deductions DECIMAL(15,2) DEFAULT 0,
+    net_salary DECIMAL(15,2) NOT NULL,
+    pay_period VARCHAR(20) DEFAULT 'Monthly',
+    region VARCHAR(5) DEFAULT 'I',
+    status VARCHAR(20) DEFAULT 'Completed',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employee_id) REFERENCES users(id)
 );
 
 -- Create Performance Reviews table
