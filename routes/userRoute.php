@@ -107,12 +107,6 @@ $router->put('/api/users/:id/unblock', function ($id) use ($userController, $aut
     return json_encode($result);
 });
 
-$router->get('/api/users/field/:field/:value', function ($field, $value) use ($userController, $authMiddleware) {
-    $authMiddleware->handle(); // Validate token
-
-    $users = $userController->getUsersByField($field, $value);
-    return json_encode($users);
-});
 
 $router->put('/api/users/:id/block', function ($id) use ($userController, $authMiddleware, $roleMiddleware) {
     $user = $authMiddleware->handle(); // Validate token
@@ -121,21 +115,6 @@ $router->put('/api/users/:id/block', function ($id) use ($userController, $authM
     $result = $userController->blockUser($id);
     return json_encode([
         'message' => $result ? 'User blocked successfully' : 'Failed to block user',
-        'success' => $result
-    ]);
-});
-
-$router->post('/api/users/:id/upload', function ($id) use ($userController, $authMiddleware) {
-    $authMiddleware->handle(); // Validate token
-
-    $fileData = [
-        'fileName' => $_FILES['file']['name'],
-        'fileUrl' => $_FILES['file']['tmp_name'],
-        'fileType' => pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION)
-    ];
-    $result = $userController->uploadFile($id, $fileData);
-    return json_encode([
-        'message' => $result ? 'File uploaded successfully' : 'Failed to upload file',
         'success' => $result
     ]);
 });
