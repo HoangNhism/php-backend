@@ -31,6 +31,7 @@ class Payroll {
     
     public function create() {
         $query = "INSERT INTO payrolls SET
+                  id = :id,
                   employee_id = :employee_id,
                   base_salary = :base_salary,
                   allowances = :allowances,
@@ -44,11 +45,15 @@ class Payroll {
                   pay_period = :pay_period,
                   region = :region,
                   status = :status";
-                  
+    
         $stmt = $this->conn->prepare($query);
-        
+    
+        // Generate a UUID for the id field
+        $this->id = $this->id ?? $this->generateUUID();
+    
         // Sanitize and bind
         $this->sanitize();
+        $stmt->bindParam(':id', $this->id);
         $stmt->bindParam(':employee_id', $this->employee_id);
         $stmt->bindParam(':base_salary', $this->base_salary);
         $stmt->bindParam(':allowances', $this->allowances);
@@ -62,8 +67,12 @@ class Payroll {
         $stmt->bindParam(':pay_period', $this->pay_period);
         $stmt->bindParam(':region', $this->region);
         $stmt->bindParam(':status', $this->status);
-        
+    
         return $stmt->execute();
+    }
+    
+    private function generateUUID() {
+        return bin2hex(random_bytes(8));
     }
 
     // Get all payrolls
