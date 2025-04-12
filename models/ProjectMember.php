@@ -83,7 +83,16 @@ class ProjectMemberModel
      */
     public function getProjectMembers($project_id)
     {
-        $query = "SELECT * FROM " . $this->table_name . " WHERE project_id = :project_id";
+        $query = "SELECT 
+            project_id, 
+            user_id, 
+            role, 
+            join_at, 
+            isDelete 
+        FROM " . $this->table_name . " 
+        WHERE project_id = :project_id 
+        AND (isDelete = false OR isDelete IS NULL)";
+
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':project_id', $project_id);
         $stmt->execute();
@@ -95,7 +104,10 @@ class ProjectMemberModel
      */
     public function getProjectsByMember($user_id)
     {
-        $query = "SELECT project_id FROM " . $this->table_name . " WHERE user_id = :user_id";
+        $query = "SELECT p.*, pm.user_id 
+                 FROM " . $this->table_name . " pm
+                 JOIN projects p ON pm.project_id = p.id
+                 WHERE pm.user_id = :user_id";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':user_id', $user_id);
         $stmt->execute();

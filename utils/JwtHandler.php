@@ -14,11 +14,10 @@ class JwtHandler
         $issuedAt = time();
         $expirationTime = $issuedAt + 3600; // Token valid for 1 hour
 
-        $token = [
+        $token = array_merge($payload, [
             'iat' => $issuedAt,
-            'exp' => $expirationTime,
-            'data' => $payload
-        ];
+            'exp' => $expirationTime
+        ]);
 
         return JWT::encode($token, $this->secretKey, 'HS256');
     }
@@ -30,7 +29,12 @@ class JwtHandler
     {
         try {
             $decoded = JWT::decode($token, new Key($this->secretKey, 'HS256'));
-            return $decoded;
+            return [
+                'id' => $decoded->id,
+                'role' => $decoded->role,
+                'iat' => $decoded->iat,
+                'exp' => $decoded->exp
+            ];
         } catch (Exception $e) {
             return null;
         }

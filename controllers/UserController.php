@@ -72,4 +72,14 @@ class UserController
     {
         return $this->userModel->unblockUser($id);
     }
+
+    public function getManagerUsers()
+    {
+        return $this->userModel->getManagerUsers();
+    }
+
+    public function getUsersByRole($role)
+    {
+        return $this->userModel->getUsersByRole($role);
+    }
 }

@@ -1,74 +1,50 @@
 <?php
 require_once __DIR__ . '/../controllers/TaskController.php';
 require_once __DIR__ . '/../middlewares/AuthMiddleware.php';
+require_once __DIR__ . '/../middlewares/RoleMiddleware.php';
 
 $router = $GLOBALS['router'];
 $taskController = new TaskController();
 $authMiddleware = new AuthMiddleware();
+$roleMiddleware = new RoleMiddleware();
 
-$router->post('/api/tasks', function () use ($taskController, $authMiddleware) {
-    $authMiddleware->handle(); // Validate token
+// Protected routes - Any authenticated user
+$router->group(['before' => function () use ($authMiddleware) {
+    $authMiddleware->handle();
+}], function () use ($router, $taskController) {
 
-    $data = json_decode(file_get_contents('php://input'), true);
-    $result = $taskController->createTask($data);
-    return json_encode($result);
-});
+    $router->post('/api/task', function () use ($taskController) {
+        $data = json_decode(file_get_contents('php://input'), true);
+        return json_encode($taskController->createTask($data));
+    });
 
-$router->get('/api/tasks', function () use ($taskController, $authMiddleware) {
-    $authMiddleware->handle(); // Validate token
+    $router->get('/api/task', function () use ($taskController) {
+        return json_encode($taskController->getAllTasks());
+    });
 
-    $tasks = $taskController->getAllTasks();
-    return json_encode($tasks);
-});
+    $router->get('/api/task/:id', function ($id) use ($taskController) {
+        return json_encode($taskController->getTaskById($id));
+    });
 
-$router->get('/api/tasks/:id', function ($id) use ($taskController, $authMiddleware) {
-    $authMiddleware->handle(); // Validate token
+    $router->get('/api/task/project/:project_id', function ($project_id) use ($taskController) {
+        return json_encode($taskController->getTasksByProject($project_id));
+    });
 
-    $task = $taskController->getTaskById($id);
-    return json_encode($task);
-});
+    $router->get('/api/task/user/:user_id', function ($user_id) use ($taskController) {
+        return json_encode($taskController->getTasksByUser($user_id));
+    });
 
-$router->get('/api/tasks/project/:project_id', function ($project_id) use ($taskController, $authMiddleware) {
-    $authMiddleware->handle(); // Validate token
+    $router->put('/api/task/:id/status', function ($id) use ($taskController) {
+        $data = json_decode(file_get_contents('php://input'), true);
+        return json_encode($taskController->updateTaskStatus($id, $data['status']));
+    });
 
-    $tasks = $taskController->getTasksByProject($project_id);
-    return json_encode($tasks);
-});
+    $router->put('/api/task/:id/priority', function ($id) use ($taskController) {
+        $data = json_decode(file_get_contents('php://input'), true);
+        return json_encode($taskController->updateTaskPriority($id, $data['priority']));
+    });
 
-$router->get('/api/tasks/user/:user_id', function ($user_id) use ($taskController, $authMiddleware) {
-    $authMiddleware->handle(); // Validate token
-
-    $tasks = $taskController->getTasksByUser($user_id);
-    return json_encode($tasks);
-});
-
-$router->put('/api/tasks/:id/status', function ($id) use ($taskController, $authMiddleware) {
-    $authMiddleware->handle(); // Validate token
-
-    $data = json_decode(file_get_contents('php://input'), true);
-    $result = $taskController->updateTaskStatus($id, $data['status']);
-    return json_encode($result);
-});
-
-$router->put('/api/tasks/:id/priority', function ($id) use ($taskController, $authMiddleware) {
-    $authMiddleware->handle(); // Validate token
-
-    $data = json_decode(file_get_contents('php://input'), true);
-    $result = $taskController->updateTaskPriority($id, $data['priority']);
-    return json_encode($result);
-});
-
-$router->delete('/api/tasks/:id', function ($id) use ($taskController, $authMiddleware) {
-    $authMiddleware->handle(); // Validate token
-
-    $result = $taskController->deleteTask($id);
-    return json_encode($result);
-});
-
-$router->put('/api/tasks/:id/assignee', function ($id) use ($taskController, $authMiddleware) {
-    $authMiddleware->handle(); // Validate token
-
-    $data = json_decode(file_get_contents('php://input'), true);
-    $result = $taskController->changeAssignee($id, $data['new_user_id']);
-    return json_encode($result);
+    $router->delete('/api/task/:id', function ($id) use ($taskController) {
+        return json_encode($taskController->deleteTask($id));
+    });
 });

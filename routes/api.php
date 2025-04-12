@@ -27,3 +27,11 @@ $router->get('/api/notifications', function() {
         'message' => 'Không có thông báo'
     ]);
 });
+
+// Add a debug route to check registered routes
+$router->get('/api/debug/routes', function () use ($router) {
+    return json_encode([
+        'success' => true,
+        'routes' => $router->getRegisteredRoutes() // You'll need to implement this method
+    ]);
+});
