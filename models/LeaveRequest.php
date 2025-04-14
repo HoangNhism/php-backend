@@ -22,6 +22,11 @@ class LeaveRequest {
     
     // Tạo yêu cầu nghỉ phép mới
     public function createRequest() {
+        // Kiểm tra trùng lặp ngày nghỉ
+        if($this->checkOverlap()) {
+            return false;
+        }
+        
         // Generate a random 16-character ID
         $this->id = substr(md5(rand()), 0, 16);
         
@@ -56,6 +61,37 @@ class LeaveRequest {
         }
         
         return false;
+    }
+    
+    // Kiểm tra trùng lặp ngày nghỉ
+    public function checkOverlap() {
+        // Kiểm tra nếu đã có yêu cầu nghỉ phép trùng lặp hoặc chờ duyệt
+        $query = "SELECT * FROM leave_requests 
+                  WHERE user_id = ? 
+                  AND status IN ('Pending', 'Approved') 
+                  AND (
+                      (start_date <= ? AND end_date >= ?) OR 
+                      (start_date <= ? AND end_date >= ?) OR
+                      (start_date >= ? AND end_date <= ?)
+                  )";
+                  
+        // Prepare statement
+        $stmt = $this->conn->prepare($query);
+        
+        // Bind parameters
+        $stmt->bindParam(1, $this->user_id);
+        $stmt->bindParam(2, $this->start_date); // start_date <= new_end_date
+        $stmt->bindParam(3, $this->start_date); // end_date >= new_start_date
+        $stmt->bindParam(4, $this->end_date);   // start_date <= new_end_date
+        $stmt->bindParam(5, $this->end_date);   // end_date >= new_end_date
+        $stmt->bindParam(6, $this->start_date); // start_date >= new_start_date
+        $stmt->bindParam(7, $this->end_date);   // end_date <= new_end_date
+        
+        // Execute query
+        $stmt->execute();
+        
+        // Nếu có kết quả, có nghĩa là trùng lặp
+        return $stmt->rowCount() > 0;
     }
     
     // Xử lý yêu cầu (phê duyệt/từ chối)

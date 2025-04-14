@@ -10,29 +10,26 @@ class AuthMiddleware
         $this->jwtHandler = new JwtHandler();
     }
 
-    /**
-     * Validate JWT token from the Authorization header.
-     */
     public function handle()
     {
         $headers = getallheaders();
         $authHeader = $headers['Authorization'] ?? null;
+        $token = str_replace('Bearer ', '', $authHeader);
 
-        if (!$authHeader || !str_starts_with($authHeader, 'Bearer ')) {
+        if (!$token) {
             http_response_code(401);
-            echo json_encode(['message' => 'Unauthorized: Missing or invalid token']);
+            echo json_encode(['message' => 'No token provided']);
             exit;
         }
 
-        $token = str_replace('Bearer ', '', $authHeader);
         $decoded = $this->jwtHandler->validateToken($token);
 
         if (!$decoded) {
             http_response_code(401);
-            echo json_encode(['message' => 'Unauthorized: Invalid token']);
+            echo json_encode(['message' => 'Unauthorized']);
             exit;
         }
 
-        return $decoded->data; // Return decoded token data (e.g., user info)
+        return $decoded;
     }
 }
