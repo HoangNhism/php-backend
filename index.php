@@ -1,49 +1,54 @@
 <?php
-
 require_once __DIR__ . '/vendor/autoload.php';
-// Load the router
 require_once './routes/Router.php';
 
-// Create a router instance
 $router = new Router();
 $GLOBALS['router'] = $router;
 
-// Set default headers for CORS
+// Enable error reporting for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+// Enable error logging
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/debug.log');
+
+// CORS headers
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
-// Handle preflight requests
+// Handle preflight
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-// Determine if the request is for an API route
-$isApiRoute = strpos($_SERVER['REQUEST_URI'], '/api') === 0;
-
-// Set content type based on route type
-if ($isApiRoute) {
+// Set JSON content type for API routes
+if (strpos($_SERVER['REQUEST_URI'], '/api') === 0) {
     header('Content-Type: application/json');
 }
 
-// Load route files
-require_once './routes/api.php';
-require_once './routes/web.php';
+try {
+    // Load routes
+    require_once './routes/api.php';
+    require_once './routes/web.php';
 
-// Handle 404 Not Found
-$router->notFound(function() use ($isApiRoute) {
-    header("HTTP/1.0 404 Not Found");
-    
-    if ($isApiRoute) {
-        return json_encode([
-            'error' => 'Route not found',
-            'status' => 404
-        ]);
-    } else {
-        return '<h1>404 Not Found</h1><p>The page you requested could not be found.</p>';
+    $response = $router->resolve();
+
+    // Ensure proper JSON response
+    if (is_string($response) && json_decode($response) === null) {
+        $response = json_encode(['data' => $response]);
     }
-});
 
-// Resolve the current route
-$router->resolve();
+    echo $response;
+} catch (Exception $e) {
+    error_log($e->getMessage());
+    http_response_code(500);
+    echo json_encode([
+        'status' => 500,
+        'error' => $e->getMessage(),
+        'file' => $e->getFile(),
+        'line' => $e->getLine()
+    ]);
+}
 ?>

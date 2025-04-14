@@ -6,45 +6,39 @@ $router = $GLOBALS['router'];
 $projectMemberController = new ProjectMemberController();
 $authMiddleware = new AuthMiddleware();
 
-$router->post('/api/project-members', function () use ($projectMemberController, $authMiddleware) {
-    $authMiddleware->handle(); // Validate token
-
-    $data = json_decode(file_get_contents('php://input'), true);
-    $result = $projectMemberController->addProjectMember($data['project_id'], $data['user_id']);
-    return json_encode([
-        'message' => $result ? 'Member added successfully' : 'Failed to add member',
-        'success' => $result
-    ]);
+// Specific routes with parameters should come first
+$router->get('/api/project-member/:project_id', function ($project_id) use ($projectMemberController, $authMiddleware) {
+    $authMiddleware->handle();
+    header('Content-Type: application/json');
+    return json_encode($projectMemberController->getProjectMembers($project_id));
 });
 
-$router->get('/api/project-members', function () use ($projectMemberController, $authMiddleware) {
+$router->get('/api/project-member/user/:user_id', function ($user_id) use ($projectMemberController, $authMiddleware) {
+    $authMiddleware->handle();
+    header('Content-Type: application/json');
+    return json_encode($projectMemberController->getProjectsByMember($user_id));
+});
+
+// Generic routes should come last
+$router->get('/api/project-member', function () use ($projectMemberController, $authMiddleware) {
     $authMiddleware->handle(); // Validate token
 
     $members = $projectMemberController->getAllMembers();
     return json_encode($members);
 });
 
-$router->get('/api/project-members/:project_id', function ($project_id) use ($projectMemberController, $authMiddleware) {
+$router->post('/api/project-member', function () use ($projectMemberController, $authMiddleware) {
     $authMiddleware->handle(); // Validate token
 
-    $members = $projectMemberController->getProjectMembers($project_id);
-    return json_encode($members);
+    $data = json_decode(file_get_contents('php://input'), true);
+    $result = $projectMemberController->addProjectMember($data['project_id'], $data['user_id']);
+    return json_encode($result);
 });
 
-$router->get('/api/project-members/user/:user_id', function ($user_id) use ($projectMemberController, $authMiddleware) {
-    $authMiddleware->handle(); // Validate token
-
-    $projects = $projectMemberController->getProjectsByMember($user_id);
-    return json_encode($projects);
-});
-
-$router->delete('/api/project-members', function () use ($projectMemberController, $authMiddleware) {
+$router->delete('/api/project-member', function () use ($projectMemberController, $authMiddleware) {
     $authMiddleware->handle(); // Validate token
 
     $data = json_decode(file_get_contents('php://input'), true);
     $result = $projectMemberController->removeMember($data['project_id'], $data['user_id']);
-    return json_encode([
-        'message' => $result ? 'Member removed successfully' : 'Failed to remove member',
-        'success' => $result
-    ]);
+    return json_encode($result);
 });

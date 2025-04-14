@@ -37,7 +37,7 @@ $router->post('/api/leave/request', function () use ($leaveController, $authMidd
 });
 
 // API xử lý yêu cầu nghỉ phép (phê duyệt/từ chối)
-$router->post('/api/leave/process', function () use ($leaveController, $authMiddleware, $roleMiddleware) {
+$router->post('/api/leave/process-request', function () use ($leaveController, $authMiddleware, $roleMiddleware) {
     $user = $authMiddleware->handle(); // Validate token
     $roleMiddleware->handle($user, ['Admin', 'Manager']); // Restrict to Admin or Manager
     
@@ -65,7 +65,7 @@ $router->post('/api/leave/initialize-balance', function () use ($leaveController
 });
 
 // API lấy tất cả yêu cầu nghỉ phép (Admin/Manager only)
-$router->get('/api/leave/all', function () use ($leaveController, $authMiddleware, $roleMiddleware) {
+$router->get('/api/leave/all-requests', function () use ($leaveController, $authMiddleware, $roleMiddleware) {
     $user = $authMiddleware->handle(); // Validate token
     $roleMiddleware->handle($user, ['Admin', 'Manager']); // Restrict to Admin or Manager
     

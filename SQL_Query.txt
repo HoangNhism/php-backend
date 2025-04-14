@@ -1,4 +1,3 @@
-SQL QUERY:
 -- Create database
 CREATE DATABASE IF NOT EXISTS erp_hr_management;
 USE erp_hr_management;
@@ -75,13 +74,26 @@ CREATE TABLE tasks (
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
+-- Create Notification table
+CREATE TABLE notifications (
+    id VARCHAR(16) PRIMARY KEY,
+    user_id VARCHAR(16) NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    message TEXT NOT NULL,
+    link VARCHAR(255),
+    isRead BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 -- Create Chats table
 CREATE TABLE chats (
   id VARCHAR(16) PRIMARY KEY,
   sender_id VARCHAR(16) NOT NULL,
   receiver_id VARCHAR(16) NOT NULL,
   message TEXT NOT NULL,
-  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  is_read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (sender_id) REFERENCES users(id),
   FOREIGN KEY (receiver_id) REFERENCES users(id)
 );
@@ -112,15 +124,22 @@ CREATE TABLE leave_balance (
 
 -- Create Payrolls table
 CREATE TABLE payrolls (
-  id VARCHAR(16) PRIMARY KEY,
-  employee_id VARCHAR(16) NOT NULL,
-  base_salary FLOAT NOT NULL,
-  allowances FLOAT DEFAULT 0,
-  deductions FLOAT DEFAULT 0,
-  net_salary FLOAT NOT NULL,
-  pay_period VARCHAR(255) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (employee_id) REFERENCES users(id) ON DELETE CASCADE
+    id VARCHAR(36) PRIMARY KEY,
+    employee_id VARCHAR(36) NOT NULL,
+    base_salary DECIMAL(15,2) NOT NULL,
+    allowances DECIMAL(15,2) DEFAULT 0,
+    deductions DECIMAL(15,2) DEFAULT 0,
+    social_insurance DECIMAL(15,2) DEFAULT 0,
+    health_insurance DECIMAL(15,2) DEFAULT 0,
+    unemployment_insurance DECIMAL(15,2) DEFAULT 0,
+    personal_income_tax DECIMAL(15,2) DEFAULT 0,
+    total_deductions DECIMAL(15,2) DEFAULT 0,
+    net_salary DECIMAL(15,2) NOT NULL,
+    pay_period VARCHAR(20) DEFAULT 'Monthly',
+    region VARCHAR(5) DEFAULT 'I',
+    status VARCHAR(20) DEFAULT 'Completed',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employee_id) REFERENCES users(id)
 );
 
 -- Create Performance Reviews table
@@ -155,22 +174,3 @@ CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_users_department ON users(department);
 CREATE INDEX idx_leave_user ON leave_requests(user_id);
 CREATE INDEX idx_leave_dates ON leave_requests(start_date, end_date);
-
--- Insert default admin user (password: 123)
-INSERT INTO users (
-  id, 
-  email, 
-  password, 
-  full_name, 
-  role, 
-  created_at, 
-  updated_at
-) VALUES (
-  SUBSTRING(MD5(RAND()) FROM 1 FOR 16),
-  'admin@gmail.com',
-  '$2a$10$X7FXzQGwHLATkDN4K9EwLuiZ3RUAdIBQe1RQxl6LQ7cJ60g45JRiS',
-  'Administrator',
-  'Admin',
-  NOW(),
-  NOW()
-);

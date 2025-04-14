@@ -69,6 +69,17 @@ class LeaveBalance {
             return $this->updateBalance();
         }
         
+        // Kiểm tra xem user_id có tồn tại trong bảng users không
+        $checkUserQuery = "SELECT id FROM users WHERE id = ?";
+        $checkUserStmt = $this->conn->prepare($checkUserQuery);
+        $checkUserStmt->bindParam(1, $this->user_id);
+        $checkUserStmt->execute();
+        
+        if($checkUserStmt->rowCount() == 0) {
+            // Không tìm thấy user_id trong bảng users
+            return false;
+        }
+        
         // Generate a random 16-character ID
         $this->id = substr(md5(rand()), 0, 16);
         
