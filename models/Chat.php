@@ -44,7 +44,14 @@ class Chat
             $this->sender_id = htmlspecialchars(strip_tags($this->sender_id));
             $this->receiver_id = htmlspecialchars(strip_tags($this->receiver_id));
             $this->message = htmlspecialchars(strip_tags($this->message));
-            $this->created_at = $this->created_at ?? date('Y-m-d H:i:s');
+
+            // Convert and format created_at
+            if ($this->created_at) {
+                $datetime = new DateTime($this->created_at);
+                $this->created_at = $datetime->format('Y-m-d H:i:s');
+            } else {
+                $this->created_at = date('Y-m-d H:i:s');
+            }
 
             // Bind parameters
             $stmt->bindParam(':id', $this->id);

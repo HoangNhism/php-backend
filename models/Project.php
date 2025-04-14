@@ -29,13 +29,24 @@ class ProjectModel
             ];
         }
 
-        // Validate date format and logic
-        $startDate = strtotime($data['start_date']);
-        $endDate = strtotime($data['end_date']);
-        if ($startDate === false || $endDate === false || $endDate < $startDate) {
+        // Convert ISO 8601 dates to MySQL datetime format
+        try {
+            $startDateTime = new DateTime($data['start_date']);
+            $endDateTime = new DateTime($data['end_date']);
+            $data['start_date'] = $startDateTime->format('Y-m-d H:i:s');
+            $data['end_date'] = $endDateTime->format('Y-m-d H:i:s');
+        } catch (Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Invalid date format or end date is earlier than start date'
+                'message' => 'Invalid date format'
+            ];
+        }
+
+        // Validate date logic
+        if ($startDateTime > $endDateTime) {
+            return [
+                'success' => false,
+                'message' => 'End date must be later than start date'
             ];
         }
 
@@ -195,13 +206,24 @@ class ProjectModel
             ];
         }
 
-        // Validate date format and logic
-        $startDate = strtotime($data['start_date']);
-        $endDate = strtotime($data['end_date']);
-        if ($startDate === false || $endDate === false || $endDate < $startDate) {
+        // Convert ISO 8601 dates to MySQL datetime format
+        try {
+            $startDateTime = new DateTime($data['start_date']);
+            $endDateTime = new DateTime($data['end_date']);
+            $data['start_date'] = $startDateTime->format('Y-m-d H:i:s');
+            $data['end_date'] = $endDateTime->format('Y-m-d H:i:s');
+        } catch (Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Invalid date format or end date is earlier than start date'
+                'message' => 'Invalid date format'
+            ];
+        }
+
+        // Validate date logic
+        if ($startDateTime > $endDateTime) {
+            return [
+                'success' => false,
+                'message' => 'End date must be later than start date'
             ];
         }
 
