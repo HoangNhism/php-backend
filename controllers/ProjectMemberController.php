@@ -36,22 +36,28 @@ class ProjectMemberController
 
     public function getProjectMembers($project_id)
     {
-        return $this->projectMemberModel->getProjectMembers($project_id);
+        $members = $this->projectMemberModel->getProjectMembers($project_id);
+
+        // Format dates if needed
+        foreach ($members as $member) {
+            if (isset($member->join_at)) {
+                $member->join_at = date('Y-m-d\TH:i:s.v\Z', strtotime($member->join_at));
+            }
+            // Ensure boolean type for isDelete
+            $member->isDelete = (bool)$member->isDelete;
+        }
+
+        return $members;
     }
 
     public function getProjectsByMember($user_id)
     {
-        $projectIds = $this->projectMemberModel->getProjectsByMember($user_id);
-        $projects = [];
-
-        foreach ($projectIds as $project) {
-            $projectData = $this->projectModel->getProjectById($project->project_id);
-            if ($projectData) {
-                $projects[] = $projectData;
-            }
-        }
-
-        return $projects;
+        $projects = $this->projectMemberModel->getProjectsByMember($user_id);
+        return [
+            'success' => true,
+            'data' => $projects,
+            'count' => count($projects)
+        ];
     }
 
     public function removeMember($project_id, $user_id)

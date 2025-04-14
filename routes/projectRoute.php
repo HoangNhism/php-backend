@@ -1,51 +1,48 @@
 <?php
 require_once __DIR__ . '/../controllers/ProjectController.php';
 require_once __DIR__ . '/../middlewares/AuthMiddleware.php';
+require_once __DIR__ . '/../middlewares/RoleMiddleware.php';
 
 $router = $GLOBALS['router'];
 $projectController = new ProjectController();
 $authMiddleware = new AuthMiddleware();
+$roleMiddleware = new RoleMiddleware();
 
-$router->post('/api/projects', function () use ($projectController, $authMiddleware) {
-    $authMiddleware->handle(); // Validate token
+// Protected routes - Any authenticated user
+$router->group(['before' => function () use ($authMiddleware) {
+    $authMiddleware->handle();
+}], function () use ($router, $projectController) {
 
-    $data = json_decode(file_get_contents('php://input'), true);
-    $result = $projectController->createProject($data);
-    return json_encode($result);
+    $router->get('/api/project', function () use ($projectController) {
+        return json_encode($projectController->getAllProjects());
+    });
+
+    $router->get('/api/project/:id', function ($id) use ($projectController) {
+        return json_encode($projectController->getProjectById($id));
+    });
+
+    $router->get('/api/project/user/:user_id', function ($user_id) use ($projectController) {
+        return json_encode($projectController->getProjectByUser($user_id));
+    });
 });
 
-$router->get('/api/projects', function () use ($projectController, $authMiddleware) {
-    $authMiddleware->handle(); // Validate token
+// Protected routes - Admin only
+$router->group(['before' => function () use ($authMiddleware, $roleMiddleware) {
+    $user = $authMiddleware->handle();
+    $roleMiddleware->handle($user, ['Admin']);
+}], function () use ($router, $projectController) {
 
-    $projects = $projectController->getAllProjects();
-    return json_encode($projects);
-});
+    $router->post('/api/project', function () use ($projectController) {
+        $data = json_decode(file_get_contents('php://input'), true);
+        return json_encode($projectController->createProject($data));
+    });
 
-$router->get('/api/projects/:id', function ($id) use ($projectController, $authMiddleware) {
-    $authMiddleware->handle(); // Validate token
+    $router->put('/api/project/:id', function ($id) use ($projectController) {
+        $data = json_decode(file_get_contents('php://input'), true);
+        return json_encode($projectController->updateProject($id, $data));
+    });
 
-    $project = $projectController->getProjectById($id);
-    return json_encode($project);
-});
-
-$router->get('/api/projects/user/:user_id', function ($user_id) use ($projectController, $authMiddleware) {
-    $authMiddleware->handle(); // Validate token
-
-    $projects = $projectController->getProjectByUser($user_id);
-    return json_encode($projects);
-});
-
-$router->put('/api/projects/:id', function ($id) use ($projectController, $authMiddleware) {
-    $authMiddleware->handle(); // Validate token
-
-    $data = json_decode(file_get_contents('php://input'), true);
-    $result = $projectController->updateProject($id, $data);
-    return json_encode($result);
-});
-
-$router->delete('/api/projects/:id', function ($id) use ($projectController, $authMiddleware) {
-    $authMiddleware->handle(); // Validate token
-
-    $result = $projectController->deleteProject($id);
-    return json_encode($result);
+    $router->delete('/api/project/:id', function ($id) use ($projectController) {
+        return json_encode($projectController->deleteProject($id));
+    });
 });

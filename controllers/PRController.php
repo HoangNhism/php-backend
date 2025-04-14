@@ -1,100 +1,181 @@
 <?php
 require_once __DIR__ . '/../models/PerformanceReviews.php';
 require_once __DIR__ . '/../config/database.php';
-class PRController
-{
-    private $model;
 
-    public function __construct($db)
-    {
-        $this->model = new PerformanceReviewsModel($db);
+class PrController {
+    private $database;
+    private $db;
+    private $pr;
+
+    public function __construct() {
+        $this->database = new Database();
+        $this->db = $this->database->getConnection();
+        $this->pr = new PerformanceReviewsModel($this->db);
     }
 
-    /**
-     * Get all performance reviews.
-     */
-    public function getAllReviews()
-    {
+    public function createPr($data) {
         try {
-            $reviews = $this->model->getAllReviews();
-            echo json_encode(['success' => true, 'data' => $reviews]);
+            if (!isset($data['user_id']) || !isset($data['score']) || !isset($data['reviewer_id'])) {
+                throw new Exception("Missing required fields");
+            }
+
+            $result = $this->pr->create($data);
+            return array(
+                "success" => true,
+                "message" => "Performance review created successfully",
+                "data" => $result
+            );
         } catch (Exception $e) {
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            return array(
+                "success" => false,
+                "message" => "Failed to create performance review",
+                "error" => $e->getMessage()
+            );
         }
     }
 
-    /**
-     * Get a performance review by ID.
-     */
-    public function getReviewById($id)
-    {
+    public function getPr() {
         try {
-            $review = $this->model->getReviewById($id);
-            if ($review) {
-                echo json_encode(['success' => true, 'data' => $review]);
-            } else {
-                echo json_encode(['success' => false, 'message' => 'Review not found']);
-            }
+            $result = $this->pr->getAll();
+            return array(
+                "success" => true,
+                "data" => $result
+            );
         } catch (Exception $e) {
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            return array(
+                "success" => false,
+                "message" => "Failed to get performance reviews",
+                "error" => $e->getMessage()
+            );
         }
     }
 
-    /**
-     * Add a new performance review.
-     */
-    public function addReview($data)
-    {
+    public function getPrById($id) {
         try {
-            $data['created_at'] = date('Y-m-d H:i:s');
-            $result = $this->model->addReview($data);
-            if ($result) {
-                echo json_encode(['success' => true, 'message' => 'Review added successfully']);
-            } else {
-                echo json_encode(['success' => false, 'message' => 'Failed to add review']);
-            }
+            $result = $this->pr->getById($id);
+            return array(
+                "success" => true,
+                "data" => $result
+            );
         } catch (Exception $e) {
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            return array(
+                "success" => false,
+                "message" => "Failed to get performance review",
+                "error" => $e->getMessage()
+            );
         }
     }
 
-    /**
-     * Update an existing performance review.
-     */
-    public function updateReview($id, $data)
-    {
+    public function getPrByUserId($user_id) {
         try {
-            $result = $this->model->updateReview($id, $data);
-            if ($result) {
-                echo json_encode(['success' => true, 'message' => 'Review updated successfully']);
-            } else {
-                echo json_encode(['success' => false, 'message' => 'Failed to update review']);
-            }
+            $result = $this->pr->getByUserId($user_id);
+            return array(
+                "success" => true,
+                "data" => $result
+            );
         } catch (Exception $e) {
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            return array(
+                "success" => false,
+                "message" => "Failed to get performance reviews",
+                "error" => $e->getMessage()
+            );
         }
     }
 
-    /**
-     * Delete a performance review.
-     */
-    public function deleteReview($id)
-    {
+    public function getPrByReviewerId($reviewer_id) {
         try {
-            $result = $this->model->deleteReview($id);
-            if ($result) {
-                echo json_encode(['success' => true, 'message' => 'Review deleted successfully']);
-            } else {
-                echo json_encode(['success' => false, 'message' => 'Failed to delete review']);
-            }
+            $result = $this->pr->getByReviewerId($reviewer_id);
+            return array(
+                "success" => true,
+                "data" => $result
+            );
         } catch (Exception $e) {
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            return array(
+                "success" => false,
+                "message" => "Failed to get performance reviews",
+                "error" => $e->getMessage()
+            );
+        }
+    }
+
+    public function updatePr($id, $data) {
+        try {
+            $result = $this->pr->update($id, $data);
+            return array(
+                "success" => true,
+                "message" => "Performance review updated successfully",
+                "data" => $result
+            );
+        } catch (Exception $e) {
+            return array(
+                "success" => false,
+                "message" => "Failed to update performance review",
+                "error" => $e->getMessage()
+            );
+        }
+    }
+
+    public function deletePr($id) {
+        try {
+            $this->pr->delete($id);
+            return array(
+                "success" => true,
+                "message" => "Performance review deleted successfully"
+            );
+        } catch (Exception $e) {
+            return array(
+                "success" => false,
+                "message" => "Failed to delete performance review",
+                "error" => $e->getMessage()
+            );
+        }
+    }
+
+    public function getMonthlyStats($year, $month) {
+        try {
+            $result = $this->pr->getMonthlyStats($year, $month);
+            return array(
+                "success" => true,
+                "data" => $result
+            );
+        } catch (Exception $e) {
+            return array(
+                "success" => false,
+                "message" => "Failed to get monthly stats",
+                "error" => $e->getMessage()
+            );
+        }
+    }
+
+    public function getQuarterlyStats($year, $quarter) {
+        try {
+            $result = $this->pr->getQuarterlyStats($year, $quarter);
+            return array(
+                "success" => true,
+                "data" => $result
+            );
+        } catch (Exception $e) {
+            return array(
+                "success" => false,
+                "message" => "Failed to get quarterly stats",
+                "error" => $e->getMessage()
+            );
+        }
+    }
+
+    public function getYearlyStats($year) {
+        try {
+            $result = $this->pr->getYearlyStats($year);
+            return array(
+                "success" => true,
+                "data" => $result
+            );
+        } catch (Exception $e) {
+            return array(
+                "success" => false,
+                "message" => "Failed to get yearly stats",
+                "error" => $e->getMessage()
+            );
         }
     }
 }
-
-// Example usage:
-// Assuming you have a database connection $db
-// $controller = new PRController($db);
-// $controller->getAllReviews();
-?>

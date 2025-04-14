@@ -30,6 +30,9 @@ class Payroll {
     }
     
     public function create() {
+        // Generate a UUID if not provided
+        $this->id = $this->id ?? $this->generateUUID();
+        
         $query = "INSERT INTO payrolls SET
                   id = :id,
                   employee_id = :employee_id,
@@ -44,15 +47,15 @@ class Payroll {
                   net_salary = :net_salary,
                   pay_period = :pay_period,
                   region = :region,
-                  status = :status";
-    
+                  status = :status,
+                  created_at = NOW()";
+        
         $stmt = $this->conn->prepare($query);
-    
-        // Generate a UUID for the id field
-        $this->id = $this->id ?? $this->generateUUID();
-    
-        // Sanitize and bind
+        
+        // Sanitize inputs
         $this->sanitize();
+        
+        // Bind all parameters
         $stmt->bindParam(':id', $this->id);
         $stmt->bindParam(':employee_id', $this->employee_id);
         $stmt->bindParam(':base_salary', $this->base_salary);
@@ -67,8 +70,16 @@ class Payroll {
         $stmt->bindParam(':pay_period', $this->pay_period);
         $stmt->bindParam(':region', $this->region);
         $stmt->bindParam(':status', $this->status);
-    
-        return $stmt->execute();
+        
+        try {
+            if($stmt->execute()) {
+                return true;
+            }
+            return false;
+        } catch (PDOException $e) {
+            error_log("Error creating payroll: " . $e->getMessage());
+            return false;
+        }
     }
     
     private function generateUUID() {

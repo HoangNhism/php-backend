@@ -1,6 +1,6 @@
 <?php
-require __DIR__ . '/ChatServer.php';
 require __DIR__ . '/vendor/autoload.php';
+require __DIR__ . '/ChatServer.php';
 
 use Ratchet\Http\HttpServer;
 use Ratchet\Server\IoServer;
@@ -12,7 +12,8 @@ $server = IoServer::factory(
             new ChatServer()
         )
     ),
-    8080
+    8080,
+    '0.0.0.0'
 );
 
 echo "WebSocket server running on port 8080\n";

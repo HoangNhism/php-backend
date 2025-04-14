@@ -98,6 +98,18 @@ class UserModel
     }
 
     /**
+     * Retrieve users by role.
+     */
+    public function getUsersByRole($role)
+    {
+        $query = "SELECT * FROM " . $this->table_name . " WHERE role = :role AND isDelete = 0";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':role', $role);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
+    }
+
+    /**
      * Add a new user.
      */
     public function addUser($data)
@@ -173,6 +185,12 @@ class UserModel
         $stmt->bindParam(':role', $data['role']);
 
         if ($stmt->execute()) {
+            // Initialize leave balance for the new user
+            require_once __DIR__ . '/LeaveBalance.php';
+            $leaveBalance = new LeaveBalance($this->conn);
+            $leaveBalance->user_id = $data['id'];
+            $leaveBalance->initialize();
+
             return [
                 'success' => true,
                 'message' => 'User added successfully',
@@ -382,5 +400,16 @@ class UserModel
             'success' => false,
             'message' => 'User not found'
         ];
+    }
+
+    /**
+     * Retrieve all users with Manager role.
+     */
+    public function getManagerUsers()
+    {
+        $query = "SELECT * FROM " . $this->table_name . " WHERE role = 'Manager' AND isDelete = 0";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
 }

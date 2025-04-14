@@ -2,6 +2,7 @@
 class Router {
     private $routes = [];
     private $notFoundCallback;
+    private $currentGroupMiddleware = null;
 
     /**
      * Register a GET route
@@ -63,71 +64,96 @@ class Router {
     }
 
     /**
+     * Group routes with middleware
+     * 
+     * @param array $options Group options including middleware
+     * @param callable $callback The function to define the group routes
+     */
+    public function group($options, $callback)
+    {
+        // Store previous middleware if nested groups
+        $previousMiddleware = $this->currentGroupMiddleware;
+
+        // Set current group middleware
+        $this->currentGroupMiddleware = $options['before'] ?? null;
+
+        // Execute the group definition
+        call_user_func($callback);
+
+        // Restore previous middleware
+        $this->currentGroupMiddleware = $previousMiddleware;
+    }
+
+    /**
+     * Handle a route with middleware
+     * 
+     * @param string $method HTTP method
+     * @param string $path URL path
+     * @param callable $callback The route callback
+     * @param array $matches Route parameters
+     * @return mixed
+     */
+    private function handleRoute($method, $path, $callback, $matches = [])
+    {
+        if ($this->currentGroupMiddleware) {
+            call_user_func($this->currentGroupMiddleware);
+        }
+
+        return call_user_func_array($callback, $matches);
+    }
+
+    /**
      * Resolve the current route
      */
-    public function resolve() {
-        // Get the HTTP method and URI path
+    public function resolve()
+    {
         $method = $_SERVER['REQUEST_METHOD'];
         $uri = $_SERVER['REQUEST_URI'];
-        
-        // Parse the URI
+
+        // Parse the URI and remove query string
         $path = parse_url($uri, PHP_URL_PATH);
-        
-        // Remove base path from URL (if needed)
-        $basePath = str_replace('/index.php', '', $_SERVER['SCRIPT_NAME']);
-        $path = str_replace($basePath, '', $path);
-        
-        // Clean up the path
-        $path = rtrim($path, '/');
-        if (empty($path)) {
-            $path = '/';
+
+        // Remove base path if it exists
+        $basePath = dirname($_SERVER['SCRIPT_NAME']);
+        if ($basePath !== '/') {
+            $path = str_replace($basePath, '', $path);
         }
-        
-        // Check for HTTP method override (for PUT, DELETE from forms)
-        if ($method === 'POST' && isset($_POST['_method'])) {
-            $method = strtoupper($_POST['_method']);
-        }
-        
-        // Check if the route exists
+
+        // Ensure leading slash and remove trailing slash
+        $path = '/' . trim($path, '/');
+
+        error_log("Attempting to match - Method: $method, Path: $path");
+
         if (isset($this->routes[$method])) {
-            // Check for exact match
+            // Try exact match first
             if (isset($this->routes[$method][$path])) {
-                // Execute the callback
-                $callback = $this->routes[$method][$path];
-                echo call_user_func($callback);
-                return;
+                return $this->handleRoute($method, $path, $this->routes[$method][$path]);
             }
-            
-            // Check for dynamic routes with parameters
+
+            // Try dynamic routes
             foreach ($this->routes[$method] as $route => $callback) {
-                // If the route doesn't have parameters, skip it
-                if (strpos($route, ':') === false) {
-                    continue;
-                }
-                
-                // Convert route pattern to regex
                 $pattern = $this->convertRouteToRegex($route);
-                
-                // Check if the path matches the pattern
+                error_log("Checking route pattern: $pattern against path: $path");
+
                 if (preg_match($pattern, $path, $matches)) {
-                    // Remove the first match (the full match)
-                    array_shift($matches);
-                    
-                    // Execute the callback with parameters
-                    echo call_user_func_array($callback, $matches);
-                    return;
+                    // Filter out numeric keys
+                    $params = array_filter($matches, function ($key) {
+                        return !is_numeric($key);
+                    }, ARRAY_FILTER_USE_KEY);
+
+                    return $this->handleRoute($method, $path, $callback, array_values($params));
                 }
             }
         }
-        
-        // Route not found, call the not found callback
-        if ($this->notFoundCallback) {
-            echo call_user_func($this->notFoundCallback);
-        } else {
-            // Default 404 response
-            header("HTTP/1.0 404 Not Found");
-            echo '404 Not Found';
-        }
+
+        // Route not found
+        header("HTTP/1.0 404 Not Found");
+        return json_encode([
+            'status' => 404,
+            'message' => 'Route not found: ' . $path,
+            'method' => $method,
+            'available_routes' => array_keys($this->routes[$method] ?? [])
+        ]);
     }
 
     /**
@@ -137,13 +163,26 @@ class Router {
      * @return string The regex pattern
      */
     private function convertRouteToRegex($route) {
-        // Replace :param with capture groups
-        $pattern = preg_replace('/:[a-zA-Z0-9]+/', '([^/]+)', $route);
-        
-        // Escape forward slashes and add delimiters
-        $pattern = '#^' . $pattern . '$#';
-        
-        return $pattern;
+        // Replace parameters before escaping
+        $parameterized = preg_replace('/:([^\/]+)/', '(?P<$1>[^/]+)', $route);
+
+        // Escape special characters except for ()
+        $escaped = str_replace('/', '\/', $parameterized);
+
+        // Add start and end markers
+        return '/^' . $escaped . '$/';
+    }
+
+    /**
+     * Get registered routes for debugging
+     * 
+     * @return array
+     */
+    public function getRegisteredRoutes()
+    {
+        return array_map(function ($methods) {
+            return array_keys($methods);
+        }, $this->routes);
     }
 }
 ?>

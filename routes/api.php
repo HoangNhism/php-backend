@@ -8,6 +8,7 @@ require_once __DIR__ . '/taskRoute.php';
 require_once __DIR__ . '/attendanceRoute.php';
 require_once __DIR__ . '/prRoute.php';
 require_once __DIR__ . '/payrollRoute.php'; 
+require_once __DIR__ . '/chatRoute.php';
 
 $router = $GLOBALS['router'];
 
@@ -25,5 +26,13 @@ $router->get('/api/notifications', function() {
         'success' => true,
         'data' => [],
         'message' => 'Không có thông báo'
+    ]);
+});
+
+// Add a debug route to check registered routes
+$router->get('/api/debug/routes', function () use ($router) {
+    return json_encode([
+        'success' => true,
+        'routes' => $router->getRegisteredRoutes() // You'll need to implement this method
     ]);
 });
