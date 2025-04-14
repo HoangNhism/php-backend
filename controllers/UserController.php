@@ -1,16 +1,19 @@
 <?php
 require_once __DIR__ . '/../models/User.php';
+require_once __DIR__ . '/../models/Notification.php';
 require_once __DIR__ . '/../config/database.php';
 
 class UserController
 {
     private $userModel;
+    private $notificationModel;
 
     public function __construct()
     {
         $database = new Database();
         $db = $database->getConnection();
         $this->userModel = new UserModel($db);
+        $this->notificationModel = new NotificationModel($db);
     }
 
     /**
@@ -81,5 +84,10 @@ class UserController
     public function getUsersByRole($role)
     {
         return $this->userModel->getUsersByRole($role);
+    }
+
+    public function getUserNotifications($userId)
+    {
+        return $this->notificationModel->getNotificationsByUser($userId);
     }
 }

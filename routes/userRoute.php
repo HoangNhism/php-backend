@@ -89,4 +89,12 @@ $router->group(['before' => function () use ($authMiddleware) {
             'success' => $result
         ]);
     });
+
+    $router->get('/api/user/:id/notifications', function ($id = null) use ($userController) {
+        if (!$id) {
+            http_response_code(400);
+            return json_encode(['error' => 'User ID is required']);
+        }
+        return json_encode($userController->getUserNotifications($id));
+    });
 });
