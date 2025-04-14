@@ -27,7 +27,6 @@ class PayrollController
                 "message" => "Không có quyền tạo bảng lương"
             );
         }
-
         // Validate input
         if (!isset($data['employee_id']) || !isset($data['base_salary'])) {
             return array(
@@ -50,14 +49,12 @@ class PayrollController
         $this->payroll->pay_period = $data['pay_period'] ?? 'Monthly';
         $this->payroll->region = $data['region'] ?? 'I';
         $this->payroll->status = $data['status'] ?? 'Completed';
-
         if ($this->payroll->create()) {
             return array(
                 "success" => true,
                 "message" => "Tạo bảng lương thành công"
             );
         }
-
         return array(
             "success" => false,
             "message" => "Không thể tạo bảng lương"
@@ -85,7 +82,6 @@ class PayrollController
                 "data" => $payroll
             );
         }
-
         return array(
             "success" => false,
             "message" => "Không tìm thấy bảng lương"
@@ -141,7 +137,6 @@ class PayrollController
                 "message" => "Xóa bảng lương thành công"
             );
         }
-
         return array(
             "success" => false,
             "message" => "Không thể xóa bảng lương"
@@ -161,7 +156,6 @@ class PayrollController
 
         // Create new PDF document
         $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
-
         // Set document information
         $pdf->SetCreator('HR ERP System');
         $pdf->SetAuthor('HR System');
@@ -179,7 +173,6 @@ class PayrollController
 
         // Generate PDF
         $pdfContent = $pdf->Output('payroll.pdf', 'S');
-
         return array(
             "success" => true,
             "data" => base64_encode($pdfContent),

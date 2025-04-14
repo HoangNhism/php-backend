@@ -1,4 +1,3 @@
-SQL QUERY:
 -- Create database
 CREATE DATABASE IF NOT EXISTS erp_hr_management;
 USE erp_hr_management;
@@ -174,22 +173,3 @@ CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_users_department ON users(department);
 CREATE INDEX idx_leave_user ON leave_requests(user_id);
 CREATE INDEX idx_leave_dates ON leave_requests(start_date, end_date);
-
--- Insert default admin user (password: 123)
-INSERT INTO users (
-  id, 
-  email, 
-  password, 
-  full_name, 
-  role, 
-  created_at, 
-  updated_at
-) VALUES (
-  SUBSTRING(MD5(RAND()) FROM 1 FOR 16),
-  'admin@gmail.com',
-  '$2a$10$X7FXzQGwHLATkDN4K9EwLuiZ3RUAdIBQe1RQxl6LQ7cJ60g45JRiS',
-  'Administrator',
-  'Admin',
-  NOW(),
-  NOW()
-);

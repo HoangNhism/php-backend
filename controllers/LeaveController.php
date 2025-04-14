@@ -55,8 +55,11 @@ class LeaveController
         $leaveRequest = new LeaveRequest($this->db);
         $leaveBalance = new LeaveBalance($this->db);
 
+        // Kiểm tra $user là object hay array
+        $userId = is_array($user) ? $user['id'] : $user->id;
+
         // Lấy số ngày nghỉ phép còn lại
-        $leaveBalance->user_id = $user->id;
+        $leaveBalance->user_id = $userId;
         if (!$leaveBalance->getBalance()) {
             // Để class LeaveBalance xử lý tính toán dựa trên hire_date
             $leaveBalance->initialize();
@@ -74,7 +77,7 @@ class LeaveController
         }
 
         // Thiết lập dữ liệu
-        $leaveRequest->user_id = $user->id;
+        $leaveRequest->user_id = $userId;
         $leaveRequest->leave_type = $data['leaveType'];
         $leaveRequest->start_date = $data['startDate'];
         $leaveRequest->end_date = $data['endDate'];
@@ -202,7 +205,10 @@ class LeaveController
     {
         // Khởi tạo đối tượng
         $leaveBalance = new LeaveBalance($this->db);
-        $leaveBalance->user_id = $user->id;
+        
+        // Kiểm tra $user là object hay array
+        $userId = is_array($user) ? $user['id'] : $user->id;
+        $leaveBalance->user_id = $userId;
 
         if ($leaveBalance->getBalance()) {
             return array(
@@ -308,7 +314,11 @@ class LeaveController
     {
         // Khởi tạo đối tượng
         $leaveRequest = new LeaveRequest($this->db);
-        $result = $leaveRequest->getUserRequests($user->id);
+        
+        // Kiểm tra $user là object hay array
+        $userId = is_array($user) ? $user['id'] : $user->id;
+        
+        $result = $leaveRequest->getUserRequests($userId);
         $num = $result->rowCount();
 
         if ($num > 0) {
