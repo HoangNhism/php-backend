@@ -8,6 +8,7 @@ require_once __DIR__ . '/taskRoute.php';
 require_once __DIR__ . '/attendanceRoute.php';
 require_once __DIR__ . '/prRoute.php';
 require_once __DIR__ . '/payrollRoute.php'; 
+require_once __DIR__ . '/chatRoute.php';
 
 $router = $GLOBALS['router'];
 

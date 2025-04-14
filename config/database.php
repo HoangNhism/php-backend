@@ -7,19 +7,19 @@ class Database {
     public $conn;
 
     public function getConnection() {
-        $this->conn = null;
         try {
             $this->conn = new PDO(
-                "mysql:host=" . $this->host . ";dbname=" . $this->db_name,
+                "mysql:host=" . $this->host . ";dbname=" . $this->db_name . ";charset=utf8mb4",
                 $this->username,
                 $this->password
             );
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            $this->conn->exec("SET NAMES utf8");
-        } catch (PDOException $exception) {
-            echo "Lỗi kết nối: " . $exception->getMessage();
+            $this->conn->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+            return $this->conn;
+        } catch(PDOException $e) {
+            error_log("Database connection failed: " . $e->getMessage());
+            return null;
         }
-        return $this->conn;
     }
 }
 ?>
