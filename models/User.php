@@ -64,46 +64,13 @@ class UserModel
 
     /**
      * Retrieve all users.
-     * @param string|null $department Optional department filter
-     * @param string|null $role Optional role filter
-     * @param bool $activeOnly Whether to return only active users
-     * @return array Array of user objects
      */
-    public function getUsers($department = null, $role = null, $activeOnly = false)
+    public function getUsers()
     {
-        try {
-            $query = "SELECT * FROM " . $this->table_name . " WHERE isDelete = 0";
-            $params = [];
-            
-            if ($department) {
-                $query .= " AND department = :department";
-                $params[':department'] = $department;
-            }
-            
-            if ($role) {
-                $query .= " AND role = :role";
-                $params[':role'] = $role;
-            }
-            
-            if ($activeOnly) {
-                $query .= " AND status = 'active'";
-            }
-            
-            $query .= " ORDER BY full_name ASC";
-            
-            $stmt = $this->conn->prepare($query);
-            
-            // Bind parameters if any
-            foreach ($params as $key => $value) {
-                $stmt->bindValue($key, $value);
-            }
-            
-            $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_OBJ);
-        } catch (Exception $e) {
-            error_log("Error in UserModel::getUsers: " . $e->getMessage());
-            throw $e;
-        }
+        $query = "SELECT * FROM " . $this->table_name . " WHERE isDelete = 0";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
 
     /**
