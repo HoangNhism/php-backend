@@ -67,7 +67,7 @@ class UserModel
      */
     public function getUsers()
     {
-        $query = "SELECT * FROM " . $this->table_name . " WHERE isDelete = 0";
+        $query = "SELECT * FROM " . $this->table_name . " WHERE isDelete = 0 AND status = 'Active'";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
@@ -78,7 +78,7 @@ class UserModel
      */
     public function getUserById($id)
     {
-        $query = "SELECT * FROM " . $this->table_name . " WHERE id = :id AND isDelete = 0";
+        $query = "SELECT * FROM " . $this->table_name . " WHERE id = :id AND isDelete = 0 AND status = 'Active'";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':id', $id);
         $stmt->execute();
@@ -90,7 +90,7 @@ class UserModel
      */
     public function getUserByEmail($email)
     {
-        $query = "SELECT * FROM " . $this->table_name . " WHERE email = :email AND isDelete = 0";
+        $query = "SELECT * FROM " . $this->table_name . " WHERE email = :email AND isDelete = 0 AND status = 'Active'";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':email', $email);
         $stmt->execute();
@@ -102,7 +102,7 @@ class UserModel
      */
     public function getUsersByRole($role)
     {
-        $query = "SELECT * FROM " . $this->table_name . " WHERE role = :role AND isDelete = 0";
+        $query = "SELECT * FROM " . $this->table_name . " WHERE role = :role AND isDelete = 0 AND status = 'Active'";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':role', $role);
         $stmt->execute();
@@ -407,7 +407,7 @@ class UserModel
      */
     public function getManagerUsers()
     {
-        $query = "SELECT * FROM " . $this->table_name . " WHERE role = 'Manager' AND isDelete = 0";
+        $query = "SELECT * FROM " . $this->table_name . " WHERE role = 'Manager' AND isDelete = 0 AND status = 'Active'";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);

@@ -59,7 +59,7 @@ $router->group(['before' => function () use ($authMiddleware, $roleMiddleware) {
         return json_encode($userController->getUsersByRole($role));
     });
 
-    $router->get('/api/user/blocked', function () use ($userController) {
+    $router->get('/api/user/blocked/all', function () use ($userController) {
         return json_encode($userController->getBlockedUsers());
     });
 });
