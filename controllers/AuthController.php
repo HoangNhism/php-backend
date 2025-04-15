@@ -70,7 +70,6 @@ class AuthController
         if ($user && password_verify($password, $user->password)) {
             $token = $this->jwtHandler->generateToken([
                 'id' => $user->id,
-                'email' => $user->email,
                 'role' => $user->role
             ]);
             return [
