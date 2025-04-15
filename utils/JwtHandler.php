@@ -29,19 +29,13 @@ class JwtHandler
     {
         try {
             $decoded = JWT::decode($token, new Key($this->secretKey, 'HS256'));
-            
-            // Convert the decoded object to an array
-            $decodedArray = json_decode(json_encode($decoded), true);
-            
-            // Ensure the token contains the required fields
-            if (!isset($decodedArray['id'])) {
-                error_log("Token validation failed: Missing user ID in token");
-                return null;
-            }
-            
-            return $decodedArray;
+            return [
+                'id' => $decoded->id,
+                'role' => $decoded->role,
+                'iat' => $decoded->iat,
+                'exp' => $decoded->exp
+            ];
         } catch (Exception $e) {
-            error_log("Token validation error: " . $e->getMessage());
             return null;
         }
     }
