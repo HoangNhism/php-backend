@@ -22,6 +22,8 @@ class AttendanceController
 
     /**
      * Get current attendance status for a user
+     * @param int $user_id The ID of the user
+     * @return array Response with status and data
      */
     public function getCurrentUserStatus($user_id)
     {
@@ -58,6 +60,9 @@ class AttendanceController
 
     /**
      * Record user arrival (check-in)
+     * @param int $user_id The ID of the user
+     * @param array $data Check-in data including time and location
+     * @return array Response with status and data
      */
     public function arrive($user_id, $data)
     {
@@ -113,6 +118,9 @@ class AttendanceController
 
     /**
      * Record user departure (check-out)
+     * @param int $user_id The ID of the user
+     * @param array $data Check-out data including time and location
+     * @return array Response with status and data
      */
     public function leave($user_id, $data)
     {
@@ -168,6 +176,9 @@ class AttendanceController
 
     /**
      * Get attendance history for a user
+     * @param int $user_id The ID of the user
+     * @param array $params Optional parameters for filtering
+     * @return array Response with status and data
      */
     public function getUserAttendanceHistory($user_id, $params = [])
     {
@@ -222,6 +233,7 @@ class AttendanceController
 
     /**
      * Get today's attendance records for all users (admin function)
+     * @return array Response with status and data
      */
     public function getTodayAttendance()
     {
@@ -262,6 +274,8 @@ class AttendanceController
 
     /**
      * Get attendance records for all users with optional date filtering
+     * @param array $params Optional parameters for filtering
+     * @return array Response with status and data
      */
     public function getAllUsersAttendance($params = [])
     {

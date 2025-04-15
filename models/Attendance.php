@@ -53,7 +53,7 @@ class AttendanceModel
 
             // Determine check-in status
             $checkInDateTime = new DateTime($checkInTime);
-            $status = $checkInDateTime > $cutoffDate ? 'Late' : 'On time';
+            $status = $checkInDateTime > $cutoffDate ? 'Late' : 'Present';
 
             // Check if user already has a check-in for today
             $todayStart = date('Y-m-d 00:00:00', strtotime($checkInTime));
